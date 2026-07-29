@@ -1,0 +1,192 @@
+"$schema": tidb-poc-assistant/profile/v1
+# Machine-readable PoC profile. Carries the intake and the selection result so downstream
+# skills (tidb-dedicated-sizing, TiShift *-to-tidb) never re-ask the customer.
+#
+# Every field that was assumed rather than stated MUST have `source: assumed`.
+# Unknown values stay `null` — do not invent them, and do not delete the key.
+
+meta:
+  customer: null              # string
+  date: null                  # YYYY-MM-DD
+  prepared_by: null           # string
+  skill_version: "0.1.0"
+
+# ---------------------------------------------------------------------------
+# Intake — the 13 items from references/intake-checklist.md
+# `source` is one of: stated | assumed | derived
+# ---------------------------------------------------------------------------
+intake:
+  source_database:            # item 1
+    type: null                # mysql | aurora-mysql | rds-mysql | cloudsql-mysql |
+                              # postgresql | oracle | sqlserver | mongodb | spanner |
+                              # cockroachdb | firestore | oceanbase | heatwave | supabase |
+                              # neon | other
+    version: null
+    mysql_compatible: null    # bool — drives the import fork
+    source: null
+
+  data_volume:                # item 2
+    raw_total_gb: null        # uncompressed, single logical copy
+    largest_table_gb: null
+    exceeds_200gb: null       # bool — drives the import fork
+    source: null
+
+  throughput:                 # item 3
+    peak_qps: null
+    peak_tps: null
+    read_write_ratio: null    # e.g. "70:30"
+    source: null
+
+  latency_sla:                # item 4
+    target: null              # e.g. "P95 < 50ms"
+    source: null
+
+  continuous_replication:     # item 5 — G4
+    required: null            # bool
+    source: null
+
+  feature_requirements:       # item 6 — G3 + compatibility flags
+    stored_procedures: null   # bool
+    triggers: null            # bool
+    udf: null                 # bool
+    event_scheduler: null     # bool
+    materialized_views: null  # bool
+    xa_transactions: null     # bool
+    foreign_keys: null        # bool
+    gis_spatial: null         # bool
+    full_text_search: null    # bool — G3 hard lock
+    vector_search: null       # bool — G3 hard lock
+    other: []                 # list of strings
+    source: null
+
+  workload_profile:           # item 7 — G7 / TiFlash
+    shape: null               # oltp | htap | heavy-olap
+    reporting_analytics: null # bool
+    source: null
+
+  deployment:                 # item 8 — G1
+    cloud_provider: null      # aws | gcp | azure | alibaba
+    region: null
+    source: null
+
+  network_compliance:         # item 9 — G2
+    vpc_peering: null         # bool
+    private_endpoint: null    # bool
+    cmek: null                # bool
+    database_audit_logging: null  # bool
+    data_residency: null      # string or null
+    source: null
+
+  cutover_window:             # item 10
+    tolerable_downtime: null  # e.g. "30 minutes"
+    source: null
+
+  poc_project:                # item 11
+    goals: []
+    success_criteria: []
+    timeline: null
+
+  team_profile:               # item 12 — G8 weighting
+    shape: null               # developers | ai-saas | enterprise-it
+    source: null
+
+  account_billing:            # item 13 — provisioning prerequisite
+    tidb_cloud_org_exists: null       # bool
+    contact_has_billing_role: null    # bool — Organization Owner or Billing Manager
+    payment_route: null               # credit-card | marketplace | not-decided
+    marketplace_provider: null        # aws | azure | gcp | alibaba | null
+    payment_method_configured: null   # bool
+    poc_credits_granted: null         # bool
+    poc_credits_expiry: null          # YYYY-MM-DD — drives the 3-day/7-day recycling risk
+    source: null
+
+# ---------------------------------------------------------------------------
+# Selection result — references/decision-tree.md
+# ---------------------------------------------------------------------------
+selection:
+  recommended: null           # starter | essential | premium | dedicated | lake
+  feasible_set: []            # what survived the gates
+
+  gates_fired: []
+    # - gate: G1
+    #   type: hard_lock       # hard_lock | exclusion | preference
+    #   trigger: "GCP region required"
+    #   effect: "lock dedicated"
+
+  excluded: {}
+    # starter:   "G4 — DM unavailable"
+    # essential: "G1 — no GCP regions"
+
+  preview_dependencies: []
+    # - feature: "vector search"
+    #   status: preview
+    #   note: "tier availability contradicted between docs pages — confirm"
+
+  conflict:
+    detected: null            # bool
+    colliding_requirements: []
+    routes_presented: []      # split-clusters | lake | externalize-search
+    customer_decision: null
+
+# ---------------------------------------------------------------------------
+# Import plan — references/data-import-playbook.md
+# ---------------------------------------------------------------------------
+import_plan:
+  path: null                  # 0 | 1 | 2 | 3 | 4
+  path_name: null             # e.g. "bulk load + incremental DM"
+  full_load_method: null      # dm-all-in-one | dumpling-import | object-storage-import | tishift
+  incremental_method: null    # dm-incremental | none | tishift
+  object_storage: null        # s3 | gcs | azure-blob | null
+  dm_network: null            # public-ip | private-link | vpc-peering | null
+  expected_cutover_downtime: null
+
+  binlog_prereqs_required: null   # bool — true for paths 1 and 4
+  binlog_prereqs_confirmed: null  # bool — has the customer verified them?
+
+# ---------------------------------------------------------------------------
+# Compatibility flags — references/feature-compatibility.md
+# ---------------------------------------------------------------------------
+compatibility:
+  red: []
+    # - feature: "stored procedures"
+    #   usage: "~120 procedures carrying billing logic"
+    #   replacement: "application layer"
+    #   effort_unknown: true
+  yellow: []
+    # - area: "AUTO_INCREMENT"
+    #   differs: "non-contiguous across nodes"
+    #   poc_test: "verify no application logic assumes gapless IDs"
+  green: []
+    # - requirement: "slow aggregate reports"
+    #   capability: "TiFlash columnar replica"
+
+  first_pass_only: null       # true when the source is non-MySQL — TiShift is authoritative
+
+# ---------------------------------------------------------------------------
+# Assumptions and follow-ups
+# ---------------------------------------------------------------------------
+assumptions: []
+  # - field: intake.data_volume.raw_total_gb
+  #   assumed: ">200GB"
+  #   impact_if_wrong: "import path would simplify to Dumpling → Import"
+  # order by impact, highest first
+
+open_questions: []
+
+next_actions: []
+  # - action: null
+  #   owner: null
+  #   blocked_by: null
+
+# ---------------------------------------------------------------------------
+# Handoffs — references/handoff.md
+# ---------------------------------------------------------------------------
+handoffs:
+  sizing:
+    required: null            # bool — true when recommended == dedicated
+    skill: tidb-dedicated-sizing
+    invoked: null
+  migration:
+    required: null            # bool — true when mysql_compatible == false
+    skill: null               # e.g. TiShift/oracle-to-tidb
+    invoked: null
