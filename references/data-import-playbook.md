@@ -109,9 +109,11 @@ configured for **incremental data migration only**.
 5. Cut over: stop source writes, confirm zero lag, redirect the application.
 
 **The critical detail**: capture the binlog position *before* the export begins, and ensure
-the source retains binlogs covering the entire export + load window. This is what
-`binlog_expire_logs_seconds` is for — see below. A too-short retention is the most common way
-this path fails, and it fails *after* the expensive part is already done.
+the source retains binlogs covering the entire export + load window. Retention is what
+governs this — see below, including the **managed-service section**, because Cloud SQL, RDS,
+and Azure each configure it differently and `binlog_expire_logs_seconds` is not always the
+lever. A too-short retention is the most common way this path fails, and it fails *after* the
+expensive part is already done.
 
 ---
 
@@ -137,6 +139,60 @@ not a nicety.
 
 **Migration mode**: logical mode suits data sets under 1 TiB; physical mode is recommended
 above that for throughput.
+
+---
+
+## ⚠️ Managed services do not expose these variables the same way
+
+The table above is written for **self-managed MySQL**. On a managed service, several of those
+variables are provider-controlled, renamed, or set through a completely different mechanism —
+`SET GLOBAL binlog_expire_logs_seconds = 604800` will simply fail or be ignored.
+
+**Never hand a customer the self-managed checklist as if it applies directly to their managed
+instance.** Translate it, and ask them to verify against the live instance before the schedule
+is committed. Getting retention wrong is only discovered after the expensive part is done.
+
+Most customers migrating to TiDB Cloud are coming *from* a managed service, so this is the
+common case, not the exception.
+
+### Google Cloud SQL for MySQL
+
+| Requirement | How it actually works |
+|---|---|
+| Enable binary logging | `gcloud sql instances patch INSTANCE_NAME --enable-bin-log`. **Enabling it on an existing instance restarts the instance** — schedule that. PITR is on by default for Enterprise Plus; Enterprise editions need it enabled explicitly. |
+| Retention | **Not** `binlog_expire_logs_seconds`. Use `--retained-transaction-log-days`. **Cloud SQL Enterprise: 1–7 days (default 7). Cloud SQL Enterprise Plus: 1–35 days (default 14).** Ask which edition — the ceiling differs by 5×, and it decides how much margin a large load has. |
+| Trade-off to mention | More retained days requires more storage. |
+
+### Amazon RDS for MySQL / Aurora MySQL
+
+| Requirement | How it actually works |
+|---|---|
+| Enable binary logging | Tied to **automated backups**. Setting the backup retention period to zero disables binary logging (turns off `log_bin`). So binlog availability depends on a backup setting, not a binlog setting. |
+| `binlog_format` | Set via the **DB parameter group**, not `SET GLOBAL`. On RDS for MySQL it is dynamic — no instance reboot needed. |
+| Retention | `CALL mysql.rds_set_configuration('binlog retention hours', N);` — hours, not seconds. **Default is `NULL`, which means binlogs are not retained at all.** Maximum is **168 hours (7 days)** for MySQL DB instances; `0` is not permitted. |
+| The trap | The `NULL` default means a customer who has "backups enabled" may still be retaining no binlogs. Have them run `CALL mysql.rds_show_configuration;` and read the actual value rather than assuming. |
+
+### Azure Database for MySQL Flexible Server
+
+| Requirement | How it actually works |
+|---|---|
+| `binlog_expire_logs_seconds` | Settable as a **server parameter** through the portal/CLI. Microsoft's own guidance for outbound replication suggests starting at **at least two days**. |
+| `binlog_row_image` | Set to `FULL` via server parameters. |
+| Extra gotcha | `lower_case_table_names` must be **consistent between source and target**. It defaults to `1` on Flexible Server, which differs from a typical Linux self-managed MySQL default of `0`. A mismatch causes table-name resolution failures that look like missing tables. |
+
+### Alibaba Cloud RDS MySQL
+
+Configured through the console's parameter settings rather than `SET GLOBAL`. Confirm the
+current values with the customer directly — treat the specifics as **to be confirmed** rather
+than assuming they match either the self-managed defaults or another provider's model.
+
+### How to present this
+
+1. Give the customer the five-row requirements table — it states the *goal*.
+2. Give them the provider-specific translation above — it states *how*.
+3. Ask them to **read back the live values** from their instance, not from memory or from the
+   provider's defaults page.
+4. Only then commit to a cutover date.
 
 ---
 
@@ -169,5 +225,6 @@ Dedicated.
 
 Prerequisites → steps → rough duration → pitfalls, plus:
 - which path was chosen and **why** (quote the volume and the replication answer)
-- the binlog checklist verbatim when DM is involved
+- the binlog checklist when DM is involved — the five-row requirements table **plus** the
+  provider-specific translation if the source is a managed service, never the raw table alone
 - an explicit statement of the expected downtime at cutover

@@ -62,6 +62,7 @@ Requirements that TiDB answers well, and which should actively shape the recomme
 | Full-text search | G3 → Starter (preview), or Lake |
 | Heavy OLAP, data warehouse, Iceberg, replacing Snowflake | G7 → Lake (public preview) |
 | Horizontal scaling, sharding pain, "we've outgrown a single instance" | TiDB's native distributed architecture — no application-level sharding |
+| **Multi-tenant SaaS**, "one customer's queries slow everyone down", tenants moved onto separate instances to contain them | **Resource control** (per-user/workload quotas) and **node groups** (separate compute inside one cluster) on Dedicated. Listen for this as an operational complaint rather than a stated requirement — see G2 in `decision-tree.md`, where it is a hard lock. |
 | Needs MySQL protocol compatibility | TiDB speaks the MySQL protocol; most drivers and tools work unchanged |
 
 TiFlash is the most commonly missed green flag. Customers describe slow reports without

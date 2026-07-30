@@ -112,10 +112,20 @@ Any one of these **LOCKs Dedicated**:
 - VPC peering (private endpoint alone does **not** trigger this — all tiers have it)
 - CMEK (customer-managed encryption keys)
 - Dual-region backup
-- Node groups (workload isolation inside one cluster)
-- Resource control / quotas
+- **Workload / tenant isolation inside one cluster** — node groups, resource control, quotas.
+  See the note below; this one you usually have to ask about rather than being told.
 - Manual cluster resizing, or pause & resume
 - New Relic integration
+
+**Ask about tenant isolation explicitly for any multi-tenant or SaaS customer.** Customers
+describe their noisy-neighbour problem as an operational complaint ("one customer's report
+slows everyone down", "we had to move that tenant to its own instance") and almost never as a
+product requirement — so it rarely surfaces on its own, and then appears late as a surprise
+constraint. TiDB Cloud Dedicated addresses it with **resource control** (quotas per user or
+workload) and **node groups** (physically separate compute within one cluster). Neither exists
+on Starter or Essential, and resource control is still under development on Premium, so this is
+a genuine hard lock rather than a preference. It is also far cheaper to design in at PoC time
+than to retrofit once tenants are live.
 
 Database audit logging is *not* here — it is available on Premium (✅) and Dedicated (✅), so
 it narrows rather than locks.

@@ -90,9 +90,16 @@ source compatibility × volume × incremental need:
 | > 200 GB, one-shot | **Path 3** — CSV/Parquet → object storage → Import |
 | > 200 GB, incremental needed | **Path 4** — Path 3 for full load + DM incremental |
 
-Include the source binlog prerequisites verbatim whenever DM is involved, the file-naming
-and ~256 MiB sizing conventions whenever object storage is involved, and an explicit
-statement of expected cutover downtime in every case.
+Include the source binlog prerequisites whenever DM is involved, the file-naming and ~256 MiB
+sizing conventions whenever object storage is involved, and an explicit statement of expected
+cutover downtime in every case.
+
+⚠️ **If the source is a managed service** (Cloud SQL, RDS/Aurora, Azure Flexible Server,
+Alibaba RDS — i.e. most customers), do **not** hand over the five-variable table as if it were
+directly settable. Those variables are provider-controlled, renamed, or configured through a
+different mechanism entirely, and retention ceilings differ by provider and even by edition.
+Use the provider-specific translation in the playbook's managed-service section, and ask the
+customer to read back the live values from the instance before any cutover date is committed.
 
 ## Step 4 — Flag feature compatibility
 
@@ -138,6 +145,27 @@ Fill all three templates:
 3. **[templates/customer-email.md](templates/customer-email.md)** — ready to send. Blockers
    go in the email, not just the attachment.
 
+### Where to write them
+
+**Default: the user's home directory** (`~/poc-report.md`, `~/poc-profile.yaml`,
+`~/customer-email.md`). **Ask before writing, offering that default** — a one-line
+confirmation, e.g. "I'll write the three deliverables to your home directory as
+`poc-report.md`, `poc-profile.yaml`, and `customer-email.md` — or tell me where you'd
+prefer." Then write where they say.
+
+Rules:
+- **Never use a temporary or scratch directory.** These are deliverables the user will attach
+  to an email and reuse in later sessions; a session-scoped temp path gets cleaned up and the
+  work is silently lost.
+- **Never write into the skill's own directory** — it is a git repository, and deliverables
+  containing customer data must not land in it.
+- **Never overwrite an existing file without saying so.** Check first; if a file is already
+  there, either confirm the overwrite or suffix the filename (e.g. `poc-report-acme.md`).
+  A second engagement must not destroy the first one's report.
+- For multiple customers, prefer customer-suffixed filenames or a per-customer subdirectory,
+  and mention the naming you chose.
+- After writing, **state the full paths** so the user knows exactly what to attach.
+
 Then hand off per [references/handoff.md](references/handoff.md): Dedicated → cluster sizing;
 non-MySQL source → the matching TiShift skill.
 
@@ -160,6 +188,9 @@ non-MySQL source → the matching TiShift skill.
   full-text tier support, where two docs pages contradict each other.
 - **Never invent feature support.** Mark uncertain items "to be confirmed". A wrong green flag
   in a pre-sales document costs far more than an open question.
+- **Write deliverables where the user can keep them.** Default to the home directory, confirm
+  the location before writing, never use a temp/scratch path, and never silently overwrite an
+  existing report.
 - **Billing is a tracked prerequisite, not a footnote.** Every assessment carries the Account
   & Billing Prerequisites section and a Next Action with a named customer-side owner, even
   when the answer is "already configured". It is the most common cause of a delayed kickoff

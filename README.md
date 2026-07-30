@@ -21,7 +21,8 @@ tidb-poc-assistant/
 │   ├── intake-checklist.md           # 13-item checklist, ask-in-rounds guidance, defaults
 │   ├── decision-tree.md              # 10 ordered gates + conflict arbitration + mermaid map
 │   ├── product-matrix.md             # features-page snapshot, Lake, the docs contradiction
-│   ├── data-import-playbook.md       # 5 import paths, binlog prereqs, CSV conventions
+│   ├── data-import-playbook.md       # 5 import paths, binlog prereqs (incl. managed-service
+│   │                                 #   translations), CSV conventions
 │   ├── feature-compatibility.md      # red / yellow / green classification + workarounds
 │   ├── account-prerequisites.md      # payment method, marketplace subscription, PoC credits
 │   └── handoff.md                    # input contracts for downstream skills
@@ -55,7 +56,9 @@ Describe the customer's situation in natural language:
 Or start from nothing and let the skill interview you — it asks in rounds of 3–4 questions
 rather than presenting a thirteen-item form.
 
-Output: a seven-section assessment report, a `poc-profile.yaml`, and a customer email.
+Output: a seven-section assessment report, a `poc-profile.yaml`, and a customer email. These
+are written to your **home directory** by default — the skill confirms the location first, and
+never uses a temp path or silently overwrites an existing report.
 
 ## The decision tree
 

@@ -16,7 +16,9 @@ Suggested grouping:
 2. **Round 2 — the workload**: peak QPS/TPS, read/write ratio, latency SLA, workload profile.
    (Items 3, 4, 7)
 3. **Round 3 — the constraints**: continuous replication, feature requirements, network &
-   compliance. (Items 5, 6, 9 — this round decides most conflicts.)
+   compliance. (Items 5, 6, 9 — this round decides most conflicts.) If the customer is
+   multi-tenant or SaaS, ask directly whether one tenant's workload can be allowed to affect
+   the others — they will not volunteer it as a requirement.
 4. **Round 4 — the project**: cutover window, PoC goals and timeline, team profile, and
    **account & billing readiness**. (Items 10, 11, 12, 13 — item 13 is the one that most
    often delays a kickoff, so do not skip it because it feels commercial rather than
@@ -37,7 +39,7 @@ everything in one paragraph, confirm the gaps and move on.
 | 6 | **Feature requirements**: UDF, Trigger, Stored Procedure, Event Scheduler, materialized views, XA, foreign keys, GIS/spatial, **full-text search**, **vector search** | **G3 hard lock**; red/yellow flags in `feature-compatibility.md` | **None assumed** — but always ask directly about stored procedures/triggers and about vector/full-text; customers rarely volunteer these and they are the highest-impact answers |
 | 7 | **Workload profile**: pure OLTP / OLTP + reporting (HTAP) / heavy OLAP or warehouse | G7 (Lake); TiFlash recommendation | **Pure OLTP** — no TiFlash; note it can be added online later |
 | 8 | **Cloud provider + region** | **G1 hard lock** | **Unspecified** — state that GCP or Azure would lock Dedicated, and ask before finalizing |
-| 9 | **Network & compliance**: VPC peering, private endpoint, CMEK, database audit logging, data residency | **G2 hard lock**; DM network options | **None assumed** — but ask about VPC peering specifically for any enterprise customer |
+| 9 | **Network & compliance**: VPC peering, private endpoint, CMEK, database audit logging, data residency, **tenant/workload isolation** | **G2 hard lock**; DM network options | **None assumed** — but ask about VPC peering specifically for any enterprise customer, and about tenant isolation for any multi-tenant or SaaS customer |
 | 10 | **Tolerable cutover window** (acceptable downtime) | One-shot import vs DM-based near-zero-downtime cutover | **Assume a short window is required** → plan for DM-based cutover |
 | 11 | **PoC goals, success criteria, timeline** | Report action items; scope of the PoC | **Unstated** — list "define PoC success criteria" as the first action item |
 | 12 | **Team profile**: developers / AI-SaaS / traditional enterprise IT | G8 weighting toward Starter | **Unspecified** — no weighting applied |
