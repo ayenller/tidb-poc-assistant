@@ -1,6 +1,6 @@
 # Feature Compatibility Flags
 
-Classify every feature requirement the customer states into red, yellow, or green. Report all
+Classify every feature requirement they state into red, yellow, or green. Report all
 three colors — a report showing only red reads as a rejection; showing only green reads as
 overselling.
 
@@ -9,7 +9,7 @@ overselling.
 ## 🔴 Red — not supported by TiDB, needs a joint replacement plan
 
 These do not exist in TiDB. Do not soften this and do not promise a roadmap. Present the
-alternative alongside the flag so the conversation stays constructive.
+alternative alongside the flag so they leave with a path forward rather than just a problem.
 
 | Feature | Why it matters | Replacement approach |
 |---|---|---|
@@ -54,7 +54,7 @@ line item in the PoC validation plan.
 
 Requirements that TiDB answers well, and which should actively shape the recommendation.
 
-| Customer statement | Trigger |
+| What they tell you | Trigger |
 |---|---|
 | Reporting, dashboards, aggregation over large tables, "our analytical queries are slow" | **Recommend TiFlash columnar replicas.** Real-time columnar replication from TiKV — no ETL, no separate warehouse, queries route automatically. Note that full HTAP capability lives in Dedicated/Premium. |
 | Mixed transactional + analytical on the same data (HTAP) | TiFlash, same as above. This is TiDB's core differentiator — say so. |
@@ -65,7 +65,7 @@ Requirements that TiDB answers well, and which should actively shape the recomme
 | **Multi-tenant SaaS**, "one customer's queries slow everyone down", tenants moved onto separate instances to contain them | **Resource control** (per-user/workload quotas) and **node groups** (separate compute inside one cluster) on Dedicated. Listen for this as an operational complaint rather than a stated requirement — see G2 in `decision-tree.md`, where it is a hard lock. |
 | Needs MySQL protocol compatibility | TiDB speaks the MySQL protocol; most drivers and tools work unchanged |
 
-TiFlash is the most commonly missed green flag. Customers describe slow reports without
+TiFlash is the most commonly missed green flag. People describe slow reports without
 recognizing it as a product-selection input — listen for it in item 7 of the intake.
 
 ---
@@ -73,7 +73,7 @@ recognizing it as a product-selection input — listen for it in item 7 of the i
 ## Classification rules
 
 - **When unsure, mark "to be confirmed"** — never guess whether TiDB supports something. A
-  wrong green flag in a pre-sales document is far more damaging than an open question.
+  wrong green flag is far more damaging than an open question — they may build a plan on it.
 - Feature availability that depends on the **tier** (vector, full-text) must cross-reference
   the decision tree, since it may create a conflict rather than just a warning.
 - Feature availability that depends on the **TiDB version** must state the version.

@@ -1,8 +1,8 @@
 # TiDB Cloud Product Matrix (snapshot)
 
 Source of truth: <https://docs.pingcap.com/tidbcloud/features/>
-Snapshot taken 2026-07-29. **Re-verify before finalizing any high-stakes or large deal** —
-this page changes as features graduate from preview.
+Snapshot taken 2026-07-29. **Re-verify before they commit to an architecture** — this page
+changes as features graduate from preview.
 
 Legend: ✅ generally available or public preview · 🔒 private preview (support ticket) ·
 🚧 under development · ❌ not available
@@ -94,12 +94,12 @@ Two TiDB docs pages disagree:
 **This skill follows the features page** (Starter only) because that page is the canonical
 tier-comparison surface.
 
-**How to handle it in a customer conversation**: when vector search is a requirement and the
-customer's other constraints push away from Starter, do not silently resolve the conflict.
-State that the tier availability of vector search must be confirmed with the account team
+**How to handle it in the conversation**: when vector search is a requirement and their
+other constraints push away from Starter, do not silently resolve the conflict.
+State that the tier availability of vector search must be confirmed with their TiDB contact
 before the PoC design is locked, and present it as an open question in the report. If it
 turns out Essential/Dedicated do support it, the conflict disappears and the recommendation
-simplifies — say so explicitly, because that is a materially better outcome for the customer.
+simplifies — say so explicitly, because that is a materially better outcome for them.
 
 ## TiDB Cloud Lake notes
 
@@ -113,11 +113,11 @@ simplifies — say so explicitly, because that is a materially better outcome fo
 - Data gets in via stages / load-from-files, data-integration pipelines, and migration paths
   (e.g. from Snowflake).
 - The docs do **not** clearly document the integration path between Lake and a transactional
-  TiDB Cloud cluster. If a customer's design depends on that link, flag it as an open
+  TiDB Cloud cluster. If their design depends on that link, flag it as an open
   question rather than assuming it works.
 
 ## What not to state
 
-- No pricing figures and no SLA percentages — those come from the account team.
+- No pricing figures and no SLA percentages — tell them to get those from their TiDB contact.
 - Never present a 🚧 or 🔒 item as available.
 - Never present a preview/beta item as a GA commitment.

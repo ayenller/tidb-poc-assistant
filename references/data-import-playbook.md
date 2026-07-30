@@ -56,7 +56,7 @@ tier that supports DM (**not Starter** — see G4).
 Export with Dumpling, import through TiDB Cloud's import feature. Simplest path — no binlog
 changes on the source, no DM job to operate.
 
-Only valid if the customer can tolerate downtime for the full export + import duration.
+Only valid if they can tolerate downtime for the full export + import duration.
 
 ---
 
@@ -148,12 +148,11 @@ The table above is written for **self-managed MySQL**. On a managed service, sev
 variables are provider-controlled, renamed, or set through a completely different mechanism —
 `SET GLOBAL binlog_expire_logs_seconds = 604800` will simply fail or be ignored.
 
-**Never hand a customer the self-managed checklist as if it applies directly to their managed
-instance.** Translate it, and ask them to verify against the live instance before the schedule
-is committed. Getting retention wrong is only discovered after the expensive part is done.
+**Never present the self-managed checklist as if it applies directly to a managed instance.**
+Translate it, and ask them to verify against their live instance before committing to a
+schedule. Getting retention wrong is only discovered after the expensive part is done.
 
-Most customers migrating to TiDB Cloud are coming *from* a managed service, so this is the
-common case, not the exception.
+Most sources are managed services, so this is the common case, not the exception.
 
 ### Google Cloud SQL for MySQL
 
@@ -183,12 +182,12 @@ common case, not the exception.
 ### Alibaba Cloud RDS MySQL
 
 Configured through the console's parameter settings rather than `SET GLOBAL`. Confirm the
-current values with the customer directly — treat the specifics as **to be confirmed** rather
+current values with them directly — treat the specifics as **to be confirmed** rather
 than assuming they match either the self-managed defaults or another provider's model.
 
 ### How to present this
 
-1. Give the customer the five-row requirements table — it states the *goal*.
+1. Give them the five-row requirements table — it states the *goal*.
 2. Give them the provider-specific translation above — it states *how*.
 3. Ask them to **read back the live values** from their instance, not from memory or from the
    provider's defaults page.
@@ -198,7 +197,7 @@ than assuming they match either the self-managed defaults or another provider's 
 
 ## Network connectivity (DM)
 
-Three options — pick one and confirm it early, because it often requires the customer's
+Three options — pick one and confirm it early, because it often requires their
 network team and becomes the schedule bottleneck:
 
 | Method | Available on |
@@ -207,7 +206,7 @@ network team and becomes the schedule bottleneck:
 | Private Link | AWS, Azure |
 | VPC Peering | AWS, Google Cloud |
 
-Note the interaction with G2: if the customer requires VPC peering, that already locked
+Note the interaction with G2: if they require VPC peering, that already locked
 Dedicated.
 
 ---
@@ -216,7 +215,7 @@ Dedicated.
 
 - **Starter does not support DM.** If the plan needs Path 1 or Path 4, Starter is out — say
   so in the import section too, not only in the tier rationale.
-- DM is **preview** on Essential and Premium, **GA** on Dedicated. If the customer needs GA
+- DM is **preview** on Essential and Premium, **GA** on Dedicated. If they need GA
   for a production cutover, that narrows to Dedicated.
 - CSV/Parquet import is available on **all** tiers, so Path 2 and Path 3 never constrain tier
   selection.

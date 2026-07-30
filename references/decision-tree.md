@@ -77,7 +77,7 @@ ranking phase.
 | Primary workload | Effect |
 |---|---|
 | Transactional (OLTP), or OLTP + reporting (HTAP) | **Exclude Lake** — reason: "analytical product, workload is transactional". The four TiDB Cloud tiers remain. |
-| Analytical / warehouse-shaped (large-scale scanning and aggregation, Iceberg, BI serving, replacing Snowflake/BigQuery/Redshift) | **Lake becomes the leading candidate.** Keep the transactional tiers only if the customer also has an OLTP system of record in scope. |
+| Analytical / warehouse-shaped (large-scale scanning and aggregation, Iceberg, BI serving, replacing Snowflake/BigQuery/Redshift) | **Lake becomes the leading candidate.** Keep the transactional tiers only if they also have an OLTP system of record in scope. |
 | Both, as separate systems | Both stay in. Expect to recommend two products and say which serves which workload. |
 
 Use intake item 7. If it is unknown, default to transactional and record the assumption —
@@ -152,10 +152,10 @@ Always attach the preview caveat, and the documentation-contradiction note from
 
 ### G4 — Continuous replication from production (DM)
 
-If the customer needs ongoing replication from a live source database (not a one-shot
+If they need ongoing replication from a live source database (not a one-shot
 cutover): **exclude Starter.** DM is unavailable there.
 
-Essential and Premium have it in preview; Dedicated has it GA. If the customer needs DM to be
+Essential and Premium have it in preview; Dedicated has it GA. If they need DM to be
 GA rather than preview, narrow further to Dedicated.
 
 ### G5 — Changefeed to Kafka
@@ -183,7 +183,7 @@ usually what rules Starter out even when nobody said "we need PITR" — ask.
 ## Phase 3 — Preferences
 
 Apply to whatever survived. These rank rather than eliminate; if several fire, prefer the one
-matching the customer's *primary* workload.
+matching their *primary* workload.
 
 ### G7 → Lake
 Heavy OLAP, data-warehouse workload, Iceberg tables, replacing Snowflake/BigQuery/Redshift,
@@ -198,7 +198,7 @@ recovery/observability requirements yet.
 ### G9 → Essential
 Production OLTP that wants elasticity and no capacity management. Adds PITR, alerting,
 backup recycle bin, DM (preview) over Starter.
-**Prefer Premium instead** if the customer needs cross-AZ failover, Kafka changefeeds,
+**Prefer Premium instead** if they need cross-AZ failover, Kafka changefeeds,
 manual backup, or database audit logging — and label Premium public preview.
 
 ### G10 → Dedicated
@@ -218,7 +218,7 @@ search plus anything production-grade.*
 
 **Do not resolve this yourself. Do not pick a tier anyway.** Emit a "⚠️ Requirement conflict"
 section naming the exact requirements that collide, then present all three routes with their
-tradeoffs and let the customer choose:
+tradeoffs and let them choose:
 
 ### Route A — Split clusters
 Starter for the vector / full-text workload, Essential or Dedicated for transactional data.
@@ -237,7 +237,7 @@ One engine covering ANSI SQL, vector, and full-text.
 - **Complexity**: low if analytics is the whole story; the Lake ↔ transactional-cluster
   integration path is not clearly documented — flag it.
 - **Risk**: public preview. Not appropriate for a customer who needs GA guarantees.
-- **Best when**: the workload is analytics-first and the customer tolerates preview.
+- **Best when**: the workload is analytics-first and they tolerate preview.
 
 ### Route C — Externalize search
 Keep business data in TiDB (any tier that satisfies the production constraints); put vector
@@ -250,7 +250,7 @@ or full-text in a purpose-built external service.
 
 Also state the fourth possibility explicitly: **confirm the vector tier availability first.**
 Because the TiDB docs contradict each other (see `product-matrix.md`), the conflict may not
-be real. Confirming with the account team before redesigning the architecture is the cheapest
+be real. Asking their TiDB contact before redesigning the architecture is the cheapest
 move available and should be listed as the first action item.
 
 ---
@@ -260,7 +260,7 @@ move available and should be listed as the first action item.
 Produce, in this order:
 
 1. **Recommendation** — one offering, named.
-2. **Why** — the gates that led there, quoting the customer's own stated requirement for each.
+2. **Why** — the gates that led there, quoting their own stated requirement for each.
 3. **Why not the others** — one line per excluded offering, naming the gate that removed it.
    Never leave an offering unexplained; "not recommended" without a reason is not acceptable
    output.

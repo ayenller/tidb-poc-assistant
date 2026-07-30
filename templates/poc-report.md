@@ -1,17 +1,20 @@
-# TiDB PoC Assessment — {{Customer Name}}
+# TiDB Cloud PoC Assessment — {{your company / system}}
 
 > Template. Seven sections, in this order, every time. Delete the guidance in `<!-- -->`
 > comments when filling it in. Keep a section even when it is empty — write "None
 > identified" rather than dropping it, so the reader knows it was considered.
 
-**Date**: {{YYYY-MM-DD}} · **Prepared by**: {{name}} · **Source database**: {{type + version}}
+**Date**: {{YYYY-MM-DD}} · **Source database**: {{type + version}}
+
+> Your own working document. Share it with your architects, your management, or your TiDB
+> contact — it is written to survive being quoted back at you.
 
 ---
 
-## 1. Customer Profile
+## 1. Your Environment
 
-<!-- The intake, echoed back. This section exists so the customer can correct a wrong input
-     before it propagates into a wrong recommendation. Mark every assumed value. -->
+<!-- The intake, echoed back, so a wrong input can be corrected before it propagates into a
+     wrong recommendation. Mark every assumed value. -->
 
 | # | Item | Value |
 |---|---|---|
@@ -37,13 +40,13 @@ Values marked *(assumed)* were not provided — see section 6.
 
 ### Recommendation: **{{Starter / Essential / Premium / Dedicated / TiDB Cloud Lake}}**
 
-<!-- One offering, named. Then the reasoning, quoting the customer's own words. -->
+<!-- One offering, named. Then the reasoning, quoting their own words back. -->
 
 **Why**
 
 | Gate | Your requirement | Effect |
 |---|---|---|
-| {{G#}} | {{quote the stated requirement}} | {{what it locked or excluded}} |
+| {{G#}} | {{quote their stated requirement}} | {{what it locked or excluded}} |
 
 **Why not the others** <!-- One line each. Never leave an offering unexplained. -->
 
@@ -64,15 +67,15 @@ Omit only if there are genuinely none. -->
 ### ⚠️ Requirement Conflict
 
 <!-- Include ONLY when the feasible set came out empty. Delete the whole subsection
-     otherwise. Never resolve the conflict unilaterally — present the routes and let the
-     customer choose. -->
+     otherwise. Never resolve the conflict unilaterally — present the routes and let them
+     choose; it is their architecture. -->
 
 **The conflict**: {{requirement A}} requires {{offering X}}, while {{requirement B}} rules
 {{offering X}} out. No single offering satisfies both.
 
 **First, the cheapest check**: {{when the conflict involves vector search — the TiDB docs
-contradict each other on tier availability. Confirm with the account team before redesigning;
-the conflict may not be real.}}
+contradict each other on tier availability. Ask your TiDB contact to confirm before
+redesigning anything; the conflict may not be real.}}
 
 | Route | Approach | Cost | Complexity | Risk |
 |---|---|---|---|---|
@@ -80,8 +83,8 @@ the conflict may not be real.}}
 | B | TiDB Cloud Lake | | | |
 | C | Externalize search | | | |
 
-**Recommendation for choosing**: {{which route fits this customer's stated priorities, and
-what fact would change the answer}}
+**Which to choose**: {{which route fits their stated priorities, and what single fact would
+change the answer}}
 
 ---
 
@@ -89,12 +92,15 @@ what fact would change the answer}}
 
 **Path**: {{Path 0–4}} — chosen because {{volume}} and {{replication requirement}}.
 
-**Expected downtime at cutover**: {{be explicit — this is the number the customer's business
-side cares about}}
+**Expected downtime at cutover**: {{be explicit — this is the number the business side will
+ask about}}
 
 ### Prerequisites
 
-<!-- For DM paths, include the binlog table verbatim. -->
+<!-- For DM paths, include the binlog requirements table. If the source is a managed service
+     (Cloud SQL / RDS / Azure / Alibaba), give the provider-specific translation too — those
+     variables are not directly settable, and retention ceilings differ by provider and
+     edition. Fill in "Current value" from the live instance, not from defaults. -->
 
 | Setting | Required value | Current value | Action |
 |---|---|---|---|
@@ -150,7 +156,7 @@ Not started}}
 | Item | Status | Owner | Needed by |
 |---|---|---|---|
 | TiDB Cloud organization exists | | | |
-| PoC contact holds Organization Owner or Billing Manager | | | |
+| Someone on your side holds Organization Owner or Billing Manager | | | |
 | Payment method configured | | | |
 
 <!-- For the marketplace route, state both consequences explicitly:
@@ -166,7 +172,7 @@ Not started}}
 
 <!-- If the recommendation is Starter, note that its free allowance may cover the PoC without
      billing setup — but say so explicitly, and note that moving off Starter later requires
-     it. Do not let the customer infer it. -->
+     it. Do not leave it to be inferred. -->
 
 ---
 
@@ -181,7 +187,7 @@ Not started}}
 
 **Confirm this one first**: {{the assumption whose correction would most change the plan}}
 
-### Open questions for the customer
+### Open questions to take to your TiDB contact
 
 1.
 
@@ -191,7 +197,7 @@ Not started}}
 
 | # | Action | Owner | Depends on |
 |---|---|---|---|
-| 1 | Configure payment method (see section 5) | *customer* | — |
+| 1 | Configure payment method (see section 5) | *you / your billing owner* | — |
 
 <!-- Keep the billing action in this table with a real owner and date. It has no technical
      dependencies, so it can start immediately and should never be what blocks kickoff. -->
@@ -200,12 +206,14 @@ Not started}}
 **Handoffs**
 
 - [ ] Cluster sizing → `tidb-dedicated-sizing` <!-- when the recommendation is Dedicated;
-      list the input block -->
+      list the input block. Node counts and specs are out of scope here. -->
 - [ ] Migration assessment → `TiShift/{{source}}-to-tidb` <!-- when the source is not
       MySQL-compatible -->
 
 ---
 
-*This assessment is a PoC starting point based on the information provided. Node counts,
-specifications, pricing, and SLAs are out of scope here. Feature availability marked preview
-or beta may change — confirm current status before finalizing the architecture.*
+*This assessment is a starting point based on the information provided, not a vendor
+commitment. Node counts, specifications, pricing, and SLAs are out of scope — get those from
+your TiDB contact. Feature availability marked preview or beta may change; confirm current
+status at <https://docs.pingcap.com/tidbcloud/features/> before committing to an
+architecture.*

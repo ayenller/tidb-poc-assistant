@@ -7,7 +7,7 @@ rather than approximating them.
 
 ## Handoff 1 — Cluster sizing → `tidb-dedicated-sizing`
 
-**When**: the recommendation lands on **Dedicated** (or the customer asks for node counts,
+**When**: the recommendation lands on **Dedicated** (or they ask for node counts,
 specs, or cost shape on any tier).
 
 **Never compute node counts, vCPU sizes, or storage in this skill.** That skill has the
@@ -80,4 +80,4 @@ When both apply — a non-MySQL source that lands on Dedicated — do them in th
 3. Point at `tidb-dedicated-sizing` for capacity.
 
 The profile YAML is the carrier: it holds the intake in a form both downstream skills can
-consume, so the customer is never asked the same question twice.
+consume, so they are never asked the same question twice.

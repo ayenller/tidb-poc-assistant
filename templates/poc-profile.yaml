@@ -1,12 +1,12 @@
 "$schema": tidb-poc-assistant/profile/v1
 # Machine-readable PoC profile. Carries the intake and the selection result so downstream
-# skills (tidb-dedicated-sizing, TiShift *-to-tidb) never re-ask the customer.
+# skills (tidb-dedicated-sizing, TiShift *-to-tidb) never re-ask the same questions.
 #
 # Every field that was assumed rather than stated MUST have `source: assumed`.
 # Unknown values stay `null` — do not invent them, and do not delete the key.
 
 meta:
-  customer: null              # string
+  organization: null          # your company or the system being evaluated
   date: null                  # YYYY-MM-DD
   prepared_by: null           # string
   skill_version: "0.1.0"
@@ -126,7 +126,7 @@ selection:
     detected: null            # bool
     colliding_requirements: []
     routes_presented: []      # split-clusters | lake | externalize-search
-    customer_decision: null
+    decision: null            # which route you chose, once you have
 
 # ---------------------------------------------------------------------------
 # Import plan — references/data-import-playbook.md
@@ -141,7 +141,7 @@ import_plan:
   expected_cutover_downtime: null
 
   binlog_prereqs_required: null   # bool — true for paths 1 and 4
-  binlog_prereqs_confirmed: null  # bool — has the customer verified them?
+  binlog_prereqs_confirmed: null  # bool — verified against the live instance?
 
 # ---------------------------------------------------------------------------
 # Compatibility flags — references/feature-compatibility.md

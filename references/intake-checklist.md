@@ -16,7 +16,7 @@ Suggested grouping:
 2. **Round 2 — the workload**: peak QPS/TPS, read/write ratio, latency SLA, workload profile.
    (Items 3, 4, 7)
 3. **Round 3 — the constraints**: continuous replication, feature requirements, network &
-   compliance. (Items 5, 6, 9 — this round decides most conflicts.) If the customer is
+   compliance. (Items 5, 6, 9 — this round decides most conflicts.) If they are
    multi-tenant or SaaS, ask directly whether one tenant's workload can be allowed to affect
    the others — they will not volunteer it as a requirement.
 4. **Round 4 — the project**: cutover window, PoC goals and timeline, team profile, and
@@ -24,7 +24,7 @@ Suggested grouping:
    often delays a kickoff, so do not skip it because it feels commercial rather than
    technical.)
 
-If the customer volunteers information out of order, take it and skip ahead. If they answer
+If they volunteer information out of order, take it and skip ahead. If they answer
 everything in one paragraph, confirm the gaps and move on.
 
 ## Checklist
@@ -43,7 +43,7 @@ everything in one paragraph, confirm the gaps and move on.
 | 10 | **Tolerable cutover window** (acceptable downtime) | One-shot import vs DM-based near-zero-downtime cutover | **Assume a short window is required** → plan for DM-based cutover |
 | 11 | **PoC goals, success criteria, timeline** | Report action items; scope of the PoC | **Unstated** — list "define PoC success criteria" as the first action item |
 | 12 | **Team profile**: developers / AI-SaaS / traditional enterprise IT | G8 weighting toward Starter | **Unspecified** — no weighting applied |
-| 13 | **Account & billing readiness**: existing TiDB Cloud org? does the PoC contact hold Organization Owner / Billing Manager? card or marketplace (which provider)? PoC credits and their expiry? | Provisioning prerequisite — see `account-prerequisites.md` | **Assume nothing is set up** and list "confirm payment method before kickoff" as a next action with a customer-side owner |
+| 13 | **Account & billing readiness**: existing TiDB Cloud org? do they hold Organization Owner / Billing Manager? card or marketplace (which provider)? PoC credits and their expiry? | Provisioning prerequisite — see `account-prerequisites.md` | **Assume nothing is set up** and list "confirm payment method before kickoff" as a next action with an owner on their side |
 
 ## Normalization
 
@@ -58,15 +58,15 @@ everything in one paragraph, confirm the gaps and move on.
 
 ## Inputs outside the checklist
 
-Anything else the customer offers — source-side CPU/RAM utilization, instance topology,
+Anything else they offer — source-side CPU/RAM utilization, instance topology,
 connection-pool settings, current pain points — is **context**. Use it to sharpen risk notes,
-PoC validation items, and the customer email. It must not silently change the tier
+PoC validation items, and the PoC request email. It must not silently change the tier
 recommendation or the import path; if it seems like it should, say so explicitly and explain
 why rather than adjusting quietly.
 
 ## Minimum viable intake
 
-If the customer will only answer one question, ask **item 6** (feature requirements) — it is
+If they will only answer one question, ask **item 6** (feature requirements) — it is
 the only input that can make the entire plan infeasible. Second priority: **item 8**
 (cloud/region), then **item 2** (volume).
 
