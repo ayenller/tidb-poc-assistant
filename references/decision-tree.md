@@ -11,7 +11,7 @@ each offering was excluded, not just which one won.
 
 ```mermaid
 flowchart TD
-    A["A. INTAKE — 13 inputs<br/>never block; apply defaults"] --> B{"B. PRODUCT SELECTION<br/>feasible set = all 5"}
+    A["A. INTAKE — 14 inputs<br/>never block; apply defaults"] --> B{"B. PRODUCT SELECTION<br/>feasible set = all 5"}
 
     B --> G0{"G0 · WORKLOAD SHAPE<br/>Primary workload analytical<br/>/ warehouse-shaped?"}
     G0 -->|no — transactional| X0["exclude Lake<br/>(reversible in arbitration)"]

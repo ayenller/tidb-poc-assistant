@@ -115,6 +115,30 @@ Add after "Our current environment":
 
 ---
 
+## Variant — when the PoC data has to be masked
+
+Add after "On the migration":
+
+> **On masking**
+>
+> Our security review requires PII to be masked before it reaches a non-production
+> environment, so we're planning a masked full load rather than replication — we understand
+> DMS-based masking is full-load only, and for a PoC a point-in-time snapshot is fine. We'd
+> take the S3 route so the masked values can be verified before anything is loaded.
+>
+> Two things we'd like your input on:
+>
+> 1. Some of our sensitive columns are types DMS cannot mask — {{list them and their types,
+>    e.g. "date of birth (`date`), and a `longtext` notes field"}}. Our current plan is
+>    {{drop them / change the source type}}; is that what you'd normally recommend?
+> 2. {{Anything about the AWS side you need — DMS engine version, IAM roles, whether the
+>    Role ARN registration in the TiDB Cloud console is something you can walk us through.}}
+>
+> For the eventual production migration we'd expect to move to unmasked replication with the
+> target under production controls, but that's a later conversation.
+
+---
+
 ## Variant — when you have unsupported features to deal with
 
 Add before "Open questions":

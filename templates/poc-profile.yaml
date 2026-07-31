@@ -12,7 +12,7 @@ meta:
   skill_version: "0.1.0"
 
 # ---------------------------------------------------------------------------
-# Intake — the 13 items from references/intake-checklist.md
+# Intake — the 14 items from references/intake-checklist.md
 # `source` is one of: stated | assumed | derived
 # ---------------------------------------------------------------------------
 intake:
@@ -90,6 +90,23 @@ intake:
     shape: null               # developers | ai-saas | enterprise-it
     source: null
 
+  data_masking:               # item 14 — Path 5; conflicts with item 5
+    required: null            # bool — must PII be masked before it reaches the PoC cluster?
+    sensitive_columns_declared: null  # bool — they must declare these; nothing is inferred
+    columns: []
+      # - column: "users.email"
+      #   mysql_type: "varchar(191)"
+      #   dms_class: A        # A = fully maskable | B = weak only | C = not maskable
+      #   action: hash        # hash | digits-mask | digits-randomize | drop | keep
+      # - column: "users.dob"
+      #   mysql_type: "date"
+      #   dms_class: C
+      #   action: drop        # dates cannot be masked
+    unmaskable_columns: []    # class B/C sensitive fields — each an open question
+    route: null               # s3 | direct — prefer s3 (verify before loading)
+    dms_engine_version_ok: null  # bool — must be >= 3.5.4 or masking is silently ignored
+    source: null
+
   account_billing:            # item 13 — provisioning prerequisite
     tidb_cloud_org_exists: null       # bool
     contact_has_billing_role: null    # bool — Organization Owner or Billing Manager
@@ -132,16 +149,21 @@ selection:
 # Import plan — references/data-import-playbook.md
 # ---------------------------------------------------------------------------
 import_plan:
-  path: null                  # 0 | 1 | 2 | 3 | 4
-  path_name: null             # e.g. "bulk load + incremental DM"
-  full_load_method: null      # dm-all-in-one | dumpling-import | object-storage-import | tishift
+  path: null                  # 0 | 1 | 2 | 3 | 4 | 5
+  path_name: null             # e.g. "bulk load + incremental DM", "masked full load"
+  full_load_method: null      # dm-all-in-one | dumpling-import | object-storage-import |
+                              # dms-masked | tishift
   incremental_method: null    # dm-incremental | none | tishift
+                              # always `none` on path 5 — masking precludes CDC
   object_storage: null        # s3 | gcs | azure-blob | null
   dm_network: null            # public-ip | private-link | vpc-peering | null
   expected_cutover_downtime: null
 
-  binlog_prereqs_required: null   # bool — true for paths 1 and 4
+  binlog_prereqs_required: null   # bool — true for paths 1 and 4; false on path 5
   binlog_prereqs_confirmed: null  # bool — verified against the live instance?
+
+  masking_replication_conflict: null  # bool — true when masking and near-zero-downtime
+                                      # cutover were both required (see data-masking.md)
 
 # ---------------------------------------------------------------------------
 # Compatibility flags — references/feature-compatibility.md

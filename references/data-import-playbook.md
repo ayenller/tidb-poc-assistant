@@ -1,22 +1,40 @@
 # Data Import Playbook
 
-Fork on three axes: **source compatibility × data volume × incremental needed**.
+**First, check whether masking is required** (intake item 14). If production data must be
+masked before it reaches the PoC cluster, the fork below does not apply — go to
+`data-masking.md` and use **Path 5**. Masking is a full-load-only approach, so it overrides
+the incremental axis entirely rather than adding to it.
+
+Otherwise, fork on three axes: **source compatibility × data volume × incremental needed**.
 
 ```
-Is the source MySQL-compatible (MySQL, Aurora MySQL, RDS MySQL, Cloud SQL MySQL,
-Azure MySQL Flexible Server, Alibaba RDS MySQL, MariaDB-ish)?
+Must the data be masked before it reaches the PoC cluster?
 │
-├── NO ──▶ Path 0: hand off to the matching TiShift skill. Stop here.
+├── YES ──▶ Path 5: AWS DMS native masking → S3 → TiDB.
+│           Full load only — no CDC. Overrides everything below.
+│           ⚠️ + near-zero-downtime cutover = CONFLICT (see data-masking.md)
 │
-└── YES
+└── NO
      │
-     ├── Volume ≤ 200 GB ──┬── incremental needed ──▶ Path 1: DM all-in-one
-     │                     └── one-shot cutover ────▶ Path 2: Dumpling → Import
+     Is the source MySQL-compatible (MySQL, Aurora MySQL, RDS MySQL, Cloud SQL MySQL,
+     Azure MySQL Flexible Server, Alibaba RDS MySQL, MariaDB-ish)?
      │
-     └── Volume > 200 GB ──┬── one-shot cutover ────▶ Path 3: CSV/Parquet → object store → Import
-                           └── incremental needed ──▶ Path 4: Path 3 for full load
-                                                              + DM incremental-only
+     ├── NO ──▶ Path 0: hand off to the matching TiShift skill. Stop here.
+     │
+     └── YES
+          │
+          ├── Volume ≤ 200 GB ──┬── incremental needed ──▶ Path 1: DM all-in-one
+          │                     └── one-shot cutover ────▶ Path 2: Dumpling → Import
+          │
+          └── Volume > 200 GB ──┬── one-shot cutover ────▶ Path 3: CSV/Parquet → object store
+                                └── incremental needed ──▶ Path 4: Path 3 for full load
+                                                                   + DM incremental-only
 ```
+
+**Do not confuse the two "DM"s.** *DM* here means TiDB Cloud **Data Migration** (Paths 1 and
+4). *DMS* means **AWS Database Migration Service**, which is what performs masking in Path 5.
+They are different products from different vendors, and mixing them up in a customer-facing
+document is both confusing and embarrassing.
 
 ---
 
@@ -114,6 +132,49 @@ governs this — see below, including the **managed-service section**, because C
 and Azure each configure it differently and `binlog_expire_logs_seconds` is not always the
 lever. A too-short retention is the most common way this path fails, and it fails *after* the
 expensive part is already done.
+
+---
+
+## Path 5 — Masked full load (masking required)
+
+When PII must be masked before it reaches the PoC cluster. Full detail in `data-masking.md`;
+the planning shape is:
+
+```
+Source ──▶ AWS DMS ──▶ S3 (Parquet) ──▶ TiDB
+            masking                     IMPORT INTO
+         in flight; source
+          never modified
+```
+
+**Recommend the S3 variant over DMS writing directly into TiDB**, because it gives a
+checkpoint where masked values can be verified *before* anything reaches the target — which
+is the entire point when the requirement is that PII must not land there.
+
+**What makes this path different from Paths 1–4:**
+
+- **Full load only. No CDC, no incremental.** There is no masked equivalent of continuous
+  replication. If they also need near-zero-downtime cutover, that is a **conflict** — see the
+  conflict section in `data-masking.md`, which usually resolves by separating the PoC phase
+  (masked, stale snapshot, fine for benchmarking) from the production migration (unmasked,
+  replicated, under production controls).
+- **No binlog prerequisites.** A full-load task needs only `SELECT` on the source, so the
+  entire binlog checklist below — and the managed-service translation problem with it —
+  simply does not apply. For a source where binlog access is difficult or unavailable, this
+  is a genuine advantage worth naming.
+- **Not every column can be masked.** Type admission (class A/B/C) decides it, and `JSON`,
+  `MEDIUMTEXT`/`LONGTEXT`, dates, and floats cannot be masked at all. Establish the sensitive
+  column list *and their exact types* before promising anything.
+- **The target DDL changes** — hashed columns widen to `CHAR(64)`, collations get remapped,
+  foreign keys and `FULLTEXT`/`SPATIAL` indexes are omitted.
+- **DMS engine must be ≥ 3.5.4**, or masking rules are accepted and silently ignored.
+
+**Duration**: comparable to Path 3 — the bulk load dominates. Masking itself is not the
+bottleneck.
+
+**Tier impact**: none directly. S3 import works on all tiers. But if masking removes the
+continuous-replication requirement for the PoC phase, **recheck G4** — the exclusion of
+Starter may no longer apply.
 
 ---
 
@@ -226,4 +287,6 @@ Prerequisites → steps → rough duration → pitfalls, plus:
 - which path was chosen and **why** (quote the volume and the replication answer)
 - the binlog checklist when DM is involved — the five-row requirements table **plus** the
   provider-specific translation if the source is a managed service, never the raw table alone
+- when masking is required: that it forces full-load-only, the per-column feasibility of their
+  sensitive fields, the DMS ≥ 3.5.4 prerequisite, and how masking will be proven
 - an explicit statement of the expected downtime at cutover

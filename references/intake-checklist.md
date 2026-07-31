@@ -1,14 +1,14 @@
 # Intake Checklist and Defaults
 
-Thirteen items. Items 1–9 are **hard inputs** — they drive gates in `decision-tree.md` or the
-fork in `data-import-playbook.md`. Items 10–13 shape the plan and the report.
+Fourteen items. Items 1–9 and 14 are **hard inputs** — they drive gates in `decision-tree.md`
+or the fork in `data-import-playbook.md`. Items 10–13 shape the plan and the report.
 
 **Never block on a missing input.** Apply the default, record it, and list every applied
 default in the report's "Assumptions & Open Questions" section.
 
 ## How to ask
 
-Ask in **groups of 3–4**, not as a thirteen-question wall. Customers abandon questionnaires.
+Ask in **groups of 3–4**, not as a fourteen-question wall. Customers abandon questionnaires.
 Suggested grouping:
 
 1. **Round 1 — the shape of the thing**: source DB type & version, data volume, cloud +
@@ -16,7 +16,7 @@ Suggested grouping:
 2. **Round 2 — the workload**: peak QPS/TPS, read/write ratio, latency SLA, workload profile.
    (Items 3, 4, 7)
 3. **Round 3 — the constraints**: continuous replication, feature requirements, network &
-   compliance. (Items 5, 6, 9 — this round decides most conflicts.) If they are
+   compliance, **data masking**. (Items 5, 6, 9, 14 — this round decides most conflicts.) If they are
    multi-tenant or SaaS, ask directly whether one tenant's workload can be allowed to affect
    the others — they will not volunteer it as a requirement.
 4. **Round 4 — the project**: cutover window, PoC goals and timeline, team profile, and
@@ -44,6 +44,7 @@ everything in one paragraph, confirm the gaps and move on.
 | 11 | **PoC goals, success criteria, timeline** | Report action items; scope of the PoC | **Unstated** — list "define PoC success criteria" as the first action item |
 | 12 | **Team profile**: developers / AI-SaaS / traditional enterprise IT | G8 weighting toward Starter | **Unspecified** — no weighting applied |
 | 13 | **Account & billing readiness**: existing TiDB Cloud org? do they hold Organization Owner / Billing Manager? card or marketplace (which provider)? PoC credits and their expiry? | Provisioning prerequisite — see `account-prerequisites.md` | **Assume nothing is set up** and list "confirm payment method before kickoff" as a next action with an owner on their side |
+| 14 | **Data masking / PII**: must production data be masked before it reaches the PoC cluster? Which columns are sensitive, and what are their **exact** MySQL types? | **Path 5** in the import playbook; **conflicts with item 5** — masking is full-load only | **Assume not required**, but ask directly for any production data set. Legal or security review raising it later forces a redesign, because masking changes the migration approach rather than just the values. |
 
 ## Normalization
 
@@ -68,7 +69,8 @@ why rather than adjusting quietly.
 
 If they will only answer one question, ask **item 6** (feature requirements) — it is
 the only input that can make the entire plan infeasible. Second priority: **item 8**
-(cloud/region), then **item 2** (volume).
+(cloud/region), then **item 2** (volume), then **item 14** (masking), which can invalidate
+the entire migration design if it surfaces late.
 
 Item 13 is different in kind: it cannot make the plan infeasible, but it is the most common
 cause of a *delayed* PoC. Ask it even in a short conversation — the answer takes one sentence

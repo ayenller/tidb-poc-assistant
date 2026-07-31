@@ -1,6 +1,6 @@
 ---
 name: tidb-poc-assistant
-description: Help someone evaluating TiDB Cloud scope their own PoC — work through their requirements, pick the offering that fits, flag features TiDB will not support, plan the data migration, and cover the account/billing prerequisites. Use when the user asks which TiDB Cloud product to choose (Starter vs Essential vs Premium vs Dedicated vs TiDB Cloud Lake), wants help preparing for or requesting a PoC, asks how to load or migrate their data into TiDB Cloud, asks whether TiDB supports something their current database uses (stored procedures, triggers, UDF, full-text search, vector search), or asks what is required to open a paid TiDB Cloud cluster (payment method, credit card, AWS/Azure/Google Cloud Marketplace subscription, PoC credits). The user is the prospective customer, not a vendor engineer. Outputs an assessment report, a machine-readable profile, and a PoC request email they can send to the TiDB team.
+description: Help someone evaluating TiDB Cloud scope their own PoC — work through their requirements, pick the offering that fits, flag features TiDB will not support, plan the data migration, and cover the account/billing prerequisites. Use when the user asks which TiDB Cloud product to choose (Starter vs Essential vs Premium vs Dedicated vs TiDB Cloud Lake), wants help preparing for or requesting a PoC, asks how to load or migrate their data into TiDB Cloud, asks whether TiDB supports something their current database uses (stored procedures, triggers, UDF, full-text search, vector search), asks how to mask or anonymize PII during a migration or PoC, or asks what is required to open a paid TiDB Cloud cluster (payment method, credit card, AWS/Azure/Google Cloud Marketplace subscription, PoC credits). The user is the prospective customer, not a vendor engineer. Outputs an assessment report, a machine-readable profile, and a PoC request email they can send to the TiDB team.
 metadata:
   version: 0.1.0
 ---
@@ -9,8 +9,8 @@ metadata:
 
 Replaces the manual back-and-forth where a vendor engineer collects information over several
 rounds, evaluates offline, and returns with a proposal. Instead the evaluator works it out
-themselves: intake → product selection → feature warnings → import plan → billing
-prerequisites → deliverables.
+themselves: intake → product selection → feature warnings → import and masking plan →
+billing prerequisites → deliverables.
 
 ## Who you are talking to
 
@@ -43,7 +43,7 @@ All output is in English.
 ## Decision tree at a glance
 
 ```
-INTAKE (13 items, never block)
+INTAKE (14 items, never block)
    │
    ├─ SHAPE ───────── G0 workload analytical or transactional? ─▶ Lake in or out
    │
@@ -70,11 +70,11 @@ skill — see *Step 2* and [references/decision-tree.md](references/decision-tre
 
 ## Step 1 — Intake
 
-Work through the 13-item checklist in
+Work through the 14-item checklist in
 [references/intake-checklist.md](references/intake-checklist.md).
 
 - **Ask conversationally, in plain prose** — 3–4 questions per round, following the four rounds
-  in that file. Never a thirteen-question wall, and never a multiple-choice form: this is a
+  in that file. Never a fourteen-question wall, and never a multiple-choice form: this is a
   conversation about their system, and they will answer out of order, skip things, and mention
   problems nobody asked about. That volunteered detail is usually the most useful input.
 - **Never block on a missing answer.** Apply the documented default, record it, and list every
@@ -105,20 +105,33 @@ not defensible.
 
 ## Step 3 — Build the import plan
 
-Follow [references/data-import-playbook.md](references/data-import-playbook.md). Fork on
-source compatibility × volume × incremental need:
+Follow [references/data-import-playbook.md](references/data-import-playbook.md). **Check
+masking first** (item 14), then fork on source compatibility × volume × incremental need:
 
 | Condition | Path |
 |---|---|
+| **Masking required** | **Path 5** — AWS DMS native masking → S3 → TiDB. Overrides the rest |
 | Source not MySQL-compatible | **Path 0** — hand off to TiShift |
 | ≤ 200 GB, incremental needed | **Path 1** — DM all-in-one |
 | ≤ 200 GB, one-shot | **Path 2** — Dumpling → Import |
 | > 200 GB, one-shot | **Path 3** — CSV/Parquet → object storage → Import |
 | > 200 GB, incremental needed | **Path 4** — Path 3 for full load + DM incremental |
 
+**Do not confuse TiDB Cloud *DM* (Data Migration, Paths 1 and 4) with AWS *DMS* (Database
+Migration Service, which performs masking in Path 5).** Different vendors, different products.
+
 Include the source binlog prerequisites whenever DM is involved, the file-naming and ~256 MiB
 sizing conventions whenever object storage is involved, and an explicit statement of expected
 cutover downtime in every case.
+
+⚠️ **The second conflict class: masking vs continuous replication.** Masking is a full-load-only
+approach — there is no masked equivalent of CDC. If they need masked data *and* a near-zero
+downtime cutover, report it the same way as a tier conflict rather than picking one silently.
+It usually resolves by separating the phases: masked full load for the PoC (a stale snapshot
+is fine for benchmarking), unmasked replication later for the real migration. See
+[references/data-masking.md](references/data-masking.md). Note that if masking removes the
+continuous-replication requirement for the PoC, **G4 may no longer exclude Starter** — recheck
+rather than carrying the exclusion forward.
 
 ⚠️ **If their source is a managed service** (Cloud SQL, RDS/Aurora, Azure Flexible Server,
 Alibaba RDS — i.e. most cases), do **not** present the five-variable table as if it were

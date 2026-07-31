@@ -22,12 +22,14 @@ tidb-poc-assistant/
 ├── SKILL.md                          # Entry point: 6-step workflow, decision tree, hard rules
 ├── README.md
 ├── references/
-│   ├── intake-checklist.md           # 13-item checklist, ask-in-rounds guidance, defaults
+│   ├── intake-checklist.md           # 14-item checklist, ask-in-rounds guidance, defaults
 │   ├── decision-tree.md              # 11 ordered gates + conflict arbitration + mermaid map
 │   ├── product-matrix.md             # features-page snapshot, Lake, the docs contradiction
-│   ├── data-import-playbook.md       # 5 import paths, binlog prereqs (incl. managed-service
+│   ├── data-import-playbook.md       # 6 import paths, binlog prereqs (incl. managed-service
 │   │                                 #   translations), CSV conventions
 │   ├── feature-compatibility.md      # red / yellow / green classification + workarounds
+│   ├── data-masking.md               # DMS native masking: type admission, the no-CDC
+│   │                                 #   conflict, verification, target DDL effects
 │   ├── account-prerequisites.md      # payment method, marketplace subscription, PoC credits
 │   └── handoff.md                    # input contracts for downstream skills
 └── templates/
@@ -58,7 +60,7 @@ Describe your situation in natural language:
 > load the data?
 
 Or start from nothing and let it interview you — it asks conversationally, in rounds of 3–4
-questions, rather than presenting a thirteen-item form.
+questions, rather than presenting a fourteen-item form.
 
 Output: a seven-section assessment report, a `poc-profile.yaml`, and a **PoC request email you
 can send to the TiDB team** — it leads with your constraints and your conclusion so the first
@@ -97,6 +99,10 @@ for each.
   and DM on Essential/Premium are all non-GA.
 - **Blockers go in the email body**, not only in the attached report — a plan that hides them
   is worth less than one that names them.
+- **Masking changes the migration, not just the values** — masking runs as a full load with no
+  CDC, so "masked data" and "near-zero-downtime cutover" cannot both be true. The skill reports
+  that as a conflict, and checks per-column feasibility, since dates, JSON, `MEDIUMTEXT`/
+  `LONGTEXT` and floats cannot be masked at all.
 - **Billing is a tracked prerequisite, not a footnote** — a paid cluster cannot be created
   without a payment method (card, or an AWS/Azure/Google Cloud/Alibaba marketplace
   subscription). It lands in Next Actions with a named owner and a date before kickoff.

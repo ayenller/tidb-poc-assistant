@@ -31,6 +31,7 @@
 | 11 | PoC goals & timeline | |
 | 12 | Team profile | |
 | 13 | Account & billing readiness | |
+| 14 | Data masking / PII required | |
 
 Values marked *(assumed)* were not provided — see section 6.
 
@@ -117,6 +118,46 @@ ask about}}
 ### Pitfalls to avoid
 
 -
+
+### Data Masking
+
+<!-- Include when masking is required (item 14); delete the subsection otherwise.
+     Full guidance in references/data-masking.md. -->
+
+**Approach**: AWS DMS native data masking, applied in flight. The source database is not
+modified and plaintext never lands on disk or in a log.
+**Route**: {{s3 (recommended — masked values can be verified before they reach the cluster) /
+direct}}
+
+> ⚠️ **Masking is full-load only — there is no CDC.** {{State what this means for the cutover
+> plan. If a near-zero-downtime cutover was also required, this is a conflict: see below.}}
+
+**Per-column feasibility** <!-- Whether a column can be masked depends on the type DMS maps it
+to, not on the MySQL type name. Ask for exact types. -->
+
+| Column | MySQL type | Class | Action | Note |
+|---|---|---|---|---|
+| | | A / B / C | hash / digits-mask / digits-randomize / drop / keep | |
+
+<!-- Class A = fully maskable (VARCHAR, CHAR, TEXT, ENUM…).
+     Class B = digits-randomize only, which preserves length and format — weak.
+     Class C = cannot be masked: JSON, MEDIUMTEXT, LONGTEXT, BLOB, DATE, DATETIME, FLOAT,
+               DOUBLE. Drop the column or change the source type.
+     Traps worth naming: TEXT is maskable but MEDIUMTEXT/LONGTEXT are not; dates cannot be
+     masked, so date of birth needs a decision; FLOAT/DOUBLE cannot be masked. -->
+
+**Sensitive columns that cannot be fully masked**: {{list each with its three options — drop,
+change source type, or accept weak/no masking. If empty, write "None".}}
+
+**Prerequisite**: DMS engine version **≥ 3.5.4**. Below this, masking rules are accepted and
+then silently ignored — plaintext reaches the target with no error anywhere.
+
+**How masking will be proven**: {{row counts, plaintext residue scan, and exact-value
+comparison — DMS hash-mask equals UPPER(SHA2(value,256)), so every masked cell is checkable
+against the source. On the S3 route this happens before anything is loaded.}}
+
+**Target schema consequences**: {{hashed columns widen to CHAR(64); collation remapping and
+its effect on sort/comparison semantics; foreign keys and FULLTEXT/SPATIAL indexes omitted.}}
 
 ---
 
