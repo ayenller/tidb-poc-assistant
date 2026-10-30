@@ -4,7 +4,9 @@
 > comments when filling it in. Keep a section even when it is empty — write "None
 > identified" rather than dropping it, so the reader knows it was considered.
 
-**Date**: {{YYYY-MM-DD}} · **Source database**: {{type + version}}
+**Date**: {{YYYY-MM-DD}} · **Service scope**: {{database / Lake / Filesystem / mixed}}
+**Source database**: {{type + version / not applicable}}
+**Target compatibility**: {{MySQL / PostgreSQL / not applicable / to be confirmed}}
 
 > Your own working document. Share it with your architects, your management, or your TiDB
 > contact — it is written to survive being quoted back at you.
@@ -25,7 +27,7 @@
 | 5 | Continuous replication required | |
 | 6 | Feature requirements | |
 | 7 | Workload profile, TP binding, report/freshness needs, scans/joins/modeling layers | |
-| 8 | Cloud provider & region | |
+| 8 | Cloud, region, data-plane ownership, preview acceptance | |
 | 9 | Network & compliance | |
 | 10 | Tolerable cutover window | |
 | 11 | PoC goals & timeline | |
@@ -33,13 +35,18 @@
 | 13 | Account & billing readiness | |
 | 14 | Data masking / PII required | |
 
+**Filesystem needs (when relevant)**: {{persistence, files/access patterns, sharing,
+scoped permissions, mount platform, layers/checkpoints, region/limits to confirm}}
+
+<!-- Filesystem-only: database inputs are not applicable, not defaulted to MySQL/DM. -->
+
 Values marked *(assumed)* were not provided — see section 6.
 
 ---
 
 ## 2. Product Selection
 
-### Recommendation: **{{Starter / Essential / Premium / Dedicated / TiDB Cloud Lake}}**
+### Recommendation: **{{Starter / Essential / Premium / BYOC / Dedicated / Lake / Filesystem; per-workload roles}}**
 
 <!-- One offering per workload. For separate TP and AP systems, name both roles.
      If requirements conflict, keep the final choice pending. -->
@@ -66,8 +73,13 @@ unverified integration. Confirm the selected offering supports the required engi
 | Starter | |
 | Essential | |
 | Premium | |
+| BYOC | |
 | Dedicated | |
 | TiDB Cloud Lake | |
+| TiDB Cloud Filesystem | |
+
+<!-- Services outside the workload family may be marked not applicable. Record the source
+     URL/date for support claims; MySQL matrix excludes PostgreSQL Starter/Lake/Filesystem. -->
 
 **Preview / beta dependencies** <!-- Every non-GA feature the recommendation relies on.
 Omit only if there are genuinely none. -->
@@ -86,14 +98,17 @@ Omit only if there are genuinely none. -->
 **The conflict**: {{requirement A}} requires {{offering X}}, while {{requirement B}} rules
 {{offering X}} out. No single offering satisfies both.
 
-**First, the cheapest check**: {{when the conflict involves vector search — the TiDB docs
-contradict each other on tier availability. Ask your TiDB contact to confirm before
-redesigning anything; the conflict may not be real.}}
+**First check**: {{confirm the exact feature, plan/version, region, and preview access
+that determine feasibility. Only claim a current documentation conflict with verified evidence.}}
 
 | Route | Approach | Cost | Complexity | Risk |
 |---|---|---|---|---|
 | A | Split clusters | | | |
-| B | TiDB Cloud Lake | | | |
+| B | TiDB Cloud Lake | |
+| TiDB Cloud Filesystem | |
+
+<!-- Services outside the workload family may be marked not applicable. Record the source
+     URL/date for support claims; MySQL matrix excludes PostgreSQL Starter/Lake/Filesystem. --> | |
 | C | Externalize search | | | |
 
 **Which to choose**: {{which route fits their stated priorities, and what single fact would
@@ -101,16 +116,18 @@ change the answer}}
 
 ---
 
-## 3. Data Import Plan
+## 3. Data Import / File Access Plan
 
-**Path**: {{transactional TiDB: Path 0–5; Lake: verified stage/load/pipeline path or
-to be confirmed}} — chosen because {{target, volume, and replication requirement}}.
+**Path**: {{MySQL-compatible TiDB: Path 0–5; Lake: verified ingestion; Filesystem:
+verified file access/population; or to be confirmed}} — chosen because {{target, volume, and replication requirement}}.
 
 <!-- For Lake, do not infer DM or import support from transactional tiers. For separate
      TP/AP systems, give each target its own ingestion plan and unresolved prerequisites. -->
 
-**Expected downtime at cutover**: {{be explicit — this is the number the business side will
-ask about}}
+**Expected downtime at cutover**: {{database target estimate / not applicable for file-only}}
+
+**Filesystem plan (when relevant)**: {{CLI/SDK access or mount, file population, scoped
+access, layers/checkpoints, validation criteria, and unresolved platform/region limits}}
 
 ### Prerequisites
 
@@ -179,6 +196,10 @@ its effect on sort/comparison semantics; foreign keys and FULLTEXT/SPATIAL index
 
 ## 4. Feature Compatibility
 
+<!-- Use target-specific checks. Do not apply MySQL SQL gaps to Lake, PostgreSQL Starter,
+     or Filesystem. Filesystem checks include persistence, sharing/scoped access, required
+     mount behavior, and layers/checkpoints when relevant. -->
+
 ### 🔴 Not supported — replacement required
 
 | Feature | Used for | Replacement approach | Effort to estimate |
@@ -205,10 +226,15 @@ its effect on sort/comparison semantics; foreign keys and FULLTEXT/SPATIAL index
      This section exists so provisioning never becomes the thing that delays kickoff.
      Keep it even when everything is already in place — write "already configured". -->
 
+**Product-specific prerequisites**: {{BYOC onboarding/cloud permissions; Lake/Filesystem
+billing and access readiness; database billing when applicable. Do not apply cluster
+credit-recycling timelines to Lake/Filesystem without verifying their own rules.}}
+
 **Status**: {{Already configured / Card to be added / Marketplace subscription in progress /
 Not started}}
 
-**Route**: {{Credit card in the TiDB Cloud console — or — <Provider> Marketplace subscription}}
+**Route**: {{database card/marketplace route when applicable; service-specific billing
+and access arrangement for Lake/Filesystem; BYOC onboarding confirmation}}
 
 | Item | Status | Owner | Needed by |
 |---|---|---|---|
@@ -223,7 +249,7 @@ Not started}}
 
 **PoC credits**: {{granted? amount? expiry date?}}
 
-> ⚠️ **Include this warning whenever credits are running with no payment method set.**
+> ⚠️ **Include only for the applicable database-cluster credit policy, verified for the target.**
 > If credits expire before a payment method is added, new Dedicated clusters cannot be
 > created, **existing clusters are recycled after 3 days, and backups after 7 days.**
 
@@ -254,7 +280,7 @@ Not started}}
 
 | # | Action | Owner | Depends on |
 |---|---|---|---|
-| 1 | Configure payment method (see section 5) | *you / your billing owner* | — |
+| 1 | Confirm applicable product billing/access readiness (see section 5) | *you / your billing or access owner* | — |
 
 <!-- Keep the billing action in this table with a real owner and date. It has no technical
      dependencies, so it can start immediately and should never be what blocks kickoff. -->
@@ -263,7 +289,7 @@ Not started}}
 **Handoffs**
 
 - [ ] Cluster sizing → `tidb-dedicated-sizing` <!-- when the recommendation is Dedicated;
-      list the input block. Node counts and specs are out of scope here. -->
+      list the input block. Do not apply to Lake/Filesystem/BYOC automatically. -->
 - [ ] Migration assessment → `TiShift/{{source}}-to-tidb` <!-- when the source is not
       MySQL-compatible -->
 

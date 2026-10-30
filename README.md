@@ -23,8 +23,9 @@ tidb-poc-assistant/
 ├── README.md
 ├── references/
 │   ├── intake-checklist.md           # 14-item checklist, ask-in-rounds guidance, defaults
-│   ├── decision-tree.md              # 11 ordered gates + conflict arbitration + mermaid map
-│   ├── product-matrix.md             # features-page snapshot, Lake, the docs contradiction
+│   ├── decision-tree.md              # family routing, requirement gates, conflicts, worked cases
+│   ├── product-matrix.md             # dated MySQL plan matrix, BYOC, lifecycle evidence
+│   ├── lake-and-filesystem.md        # service fit, focused intake, validation boundaries
 │   ├── data-import-playbook.md       # 6 import paths, binlog prereqs (incl. managed-service
 │   │                                 #   translations), CSV conventions
 │   ├── feature-compatibility.md      # red / yellow / green classification + workarounds
@@ -68,74 +69,51 @@ reply is substantive instead of another questionnaire. All three are written to 
 directory** by default; the skill confirms the location first and never uses a temp path or
 silently overwrites an existing report.
 
-## The decision tree
+## What it evaluates
 
-Eleven gates in four phases, carrying a feasible set that starts at all five offerings:
+- **MySQL-compatible database plans**: Starter, Essential, Premium, BYOC, Dedicated.
+- **Lake**: independent analytical workloads; TP-derived reporting keeps the TiFlash
+  direction on a confirmed supporting database plan.
+- **Filesystem**: persistent/shared files across machines, CI jobs, and AI-agent sessions,
+  without requiring a database. Includes access scopes, mounts, layers/checkpoints, and
+  service-specific PoC criteria.
+- **PostgreSQL-compatible Starter**: identified as a separate public-preview track; the
+  MySQL matrix is not reused as evidence for it.
 
-| Phase | Gates | Effect |
-|---|---|---|
-| **Shape** | G0 analytics tied to core TP transactions? | TP-derived → TiFlash; independent pure AP → Lake; separate systems evaluated by role |
-| **Hard locks** | G1 cloud region · G2 enterprise infra/compliance · G3 vector or full-text search | Reduce the set to one |
-| **Exclusions** | G4 continuous replication (DM) · G5 Kafka changefeed · G6 production observability | Remove members |
-| **Preferences** | G7 independent pure AP / warehouse · G8 developer/AI-SaaS · G9 elastic OLTP · G10 mission-critical | Rank survivors |
+The workflow routes by family first, then intersects region, ownership, features, recovery,
+and integration requirements. Mixed workloads get a recommendation and validation plan
+per service. BYOC is selected for own-cloud data-plane requirements, not merely a customer
+bucket. Missing answers remain documented assumptions or open questions.
 
-**The conflict this exists to catch**: vector and full-text search are available on **Starter
-only**, while DM (continuous replication from production) is available on **everything except
-Starter**. If you need both, no single offering works. The skill detects the
-empty feasible set, refuses to improvise a tier, and presents three escape routes — split
-clusters, TiDB Cloud Lake, or externalized search — with cost, complexity, and preview risk
-for each.
+The verified 2026-10-30 snapshot comes from the official
+[feature comparison](https://docs.pingcap.com/tidbcloud/features/),
+[Lake overview](https://docs.pingcap.com/tidbcloudlake/lake-overview/), and
+[Filesystem introduction](https://docs.pingcap.com/tidbcloud-filesystem/filesystem-intro/).
+[Product introduction](https://docs.pingcap.com/tidbcloud/tidb-cloud-intro/) provides
+plan lifecycle status. Public/private preview and under-development support are kept distinct;
+a checkmark alone is not a GA promise. Re-verify before committing to an architecture.
 
-Selection follows [TiFlash vs Lake: Selection Guide](https://docs.google.com/document/d/1ZDQs9fBaLbnURM2aTshQoowIZPVU72j2Q2scXlzEw-U/edit?tab=t.0)
-(incorporated 2026-10-30). A core billing system with a few fresh reports points to TiFlash;
-a standalone warehouse points to Lake, even below 50 TB. Pure AP above 50 TB with heavy
-scans/joins or multi-layer modeling is a strong Lake case: TiFlash would also retain a
-TiKV row store with no TP purpose. **50 TB is a selection signal, not a TiFlash capacity
-limit.** TP-bound workloads above it need architecture review. Lake requirements are checked
-separately; the transactional feature matrix cannot force a pure-AP design to Dedicated.
-Worked selection cases are in `references/decision-tree.md`.
-The profile and report preserve the TP-binding evidence, volume signal, and per-workload
-recommendations. This does not refresh the older product-feature snapshot.
+The earlier [TiFlash vs Lake selection guidance](https://docs.google.com/document/d/1ZDQs9fBaLbnURM2aTshQoowIZPVU72j2Q2scXlzEw-U/edit?tab=t.0)
+is retained: TP-derived analytics → TiFlash; independent pure AP → Lake. The 50 TB marker
+is a selection signal, not a capacity limit or Lake minimum.
 
-## Key rules encoded in the skill
+## Planning and outputs
 
-- **Never block on missing inputs** — apply documented defaults, list every one, and name the
-  assumption most worth confirming first.
-- **Selection and planning only** — cluster sizing hands off to `tidb-dedicated-sizing`;
-  non-MySQL sources hand off to the matching TiShift `*-to-tidb` skill. The profile YAML is
-  the carrier, so you are never asked the same question twice.
-- **Every exclusion gets a reason** — an offering marked "not recommended" without a named
-  gate is incomplete output.
-- **Preview and beta are always labeled** — Premium, Lake, vector search, full-text search,
-  and DM on Essential/Premium are all non-GA.
-- **Blockers go in the email body**, not only in the attached report — a plan that hides them
-  is worth less than one that names them.
-- **Masking changes the migration, not just the values** — masking runs as a full load with no
-  CDC, so "masked data" and "near-zero-downtime cutover" cannot both be true. The skill reports
-  that as a conflict, and checks per-column feasibility, since dates, JSON, `MEDIUMTEXT`/
-  `LONGTEXT` and floats cannot be masked at all.
-- **Billing is a tracked prerequisite, not a footnote** — a paid cluster cannot be created
-  without a payment method (card, or an AWS/Azure/Google Cloud/Alibaba marketplace
-  subscription). It lands in Next Actions with a named owner and a date before kickoff.
-- **No pricing, no SLA numbers, no invented feature support** — uncertain items are marked
-  "to be confirmed".
+- Flag target-specific compatibility gaps, behavior differences, and requirement conflicts.
+- Plan database loading, replication, masking, and cutover, or service-specific file/data
+  access. Masking limitations remain specific to the documented DMS route.
+- Track applicable billing/access readiness; do not apply database credit-recycling rules
+  to Lake or Filesystem without verifying their own terms.
+- Generate an assessment report, YAML profile, and request email, including owners,
+  assumptions, unresolved checks, preview risks, and specialist handoffs.
 
-## ⚠️ Known documentation contradiction
+Selection and planning only: no infrastructure deployment, cluster capacity math, price
+quotes, SLA commitments, or deep schema conversion. Worked cases in
+`references/decision-tree.md` cover family routing, ownership conflicts, current New Relic
+support, private-preview access, and Filesystem-only requests.
 
-Two TiDB docs pages disagree about vector-search tier availability:
-
-- <https://docs.pingcap.com/tidbcloud/features/> — Starter only
-- <https://docs.pingcap.com/tidbcloud/vector-search-overview/> — Starter, Essential, and
-  Dedicated (beta)
-
-This skill follows the **features page**, since that is the canonical tier-comparison
-surface. The contradiction is recorded in `references/product-matrix.md`, and when it
-produces a conflict in your plan, the skill's first recommended action is to confirm actual
-availability with your TiDB contact — because if the broader page is right, the conflict
-disappears and the architecture simplifies.
-
-The product matrix is a snapshot taken **2026-07-29**. Re-verify before you commit to an
-architecture.
+Historical vector-doc discrepancies are dated context, not a newly verified contradiction.
+If search availability changes the architecture, confirm the exact plan/version first.
 
 ## Related skills
 

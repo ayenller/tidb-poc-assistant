@@ -1,14 +1,19 @@
 # Feature Compatibility Flags
 
-Classify every feature requirement they state into red, yellow, or green. Report all
+Apply this file to **MySQL-compatible TiDB database targets**. Lake, Filesystem, and
+PostgreSQL-compatible Starter need their own documentation; do not inherit these red flags
+or assert unsupported features across all TiDB Cloud services. Refer to
+[lake-and-filesystem.md](lake-and-filesystem.md) for service routing.
+
+Classify every applicable feature requirement they state into red, yellow, or green. Report all
 three colors — a report showing only red reads as a rejection; showing only green reads as
 overselling.
 
 ---
 
-## 🔴 Red — not supported by TiDB, needs a joint replacement plan
+## 🔴 Red — MySQL-compatible TiDB gaps needing a replacement plan
 
-These do not exist in TiDB. Do not soften this and do not promise a roadmap. Present the
+These are gaps in the MySQL-target assessment, not statements about Lake or Filesystem. Do not soften this and do not promise a roadmap. Present the
 alternative alongside the flag so they leave with a path forward rather than just a problem.
 
 | Feature | Why it matters | Replacement approach |
@@ -21,7 +26,7 @@ alternative alongside the flag so they leave with a path forward rather than jus
 | **XA / distributed transactions across engines** | Rare but blocking when present | Redesign around TiDB's native distributed transactions, which cover the usual motivation |
 | **GIS / spatial indexes** | Geospatial querying | No spatial index in TiDB. Options: bounding-box filters on ordinary indexes, an external geo service, or TiDB Cloud Lake (geo-native, public preview). |
 | **Full-text search** on a non-Starter tier | See `product-matrix.md` | Starter, Lake, or an external search service. This one is a *tier* limitation, not an engine limitation — it interacts with the decision tree (G3). |
-| **Vector search** on a non-Starter tier | See `product-matrix.md` | Starter, Lake, or an external vector store. Same tier caveat — and see the documentation contradiction before treating it as settled. |
+| **Vector search** on a non-Starter tier | See `product-matrix.md` | Starter, Lake, or an external vector store. Same tier caveat — confirm current plan/version support before treating it as settled. |
 
 **How to phrase a red flag**: name the feature, state plainly that TiDB does not support it,
 give the replacement, and give the estimation question that sizes the work ("how many
@@ -60,7 +65,9 @@ Requirements that TiDB answers well, and which should actively shape the recomme
 | Core TP system with a few fresh, consistent reports on the same transactional data | **TiFlash direction.** Columnar replicas from TiKV for TP-derived analytics; confirm offering support (the snapshot identifies Dedicated for full HTAP). Within 50 TB is the typical profile, not a hard limit. |
 | Pure AP, no TP transaction binding; especially >50 TB, large scans/joins, multi-layer modeling | **Lake direction** (public preview), including smaller pure-AP workloads. Avoid a TiKV row store with no TP purpose; see Phase 0 for the cost rationale. |
 | Vector search, semantic retrieval, RAG | G3 → Starter (preview), or Lake for analytics-shaped workloads |
-| Full-text search | G3 → Starter (preview), or Lake |
+| Full-text search | G3 → MySQL Starter (preview), or Lake for an independent AP role; not Premium/BYOC under-development support |
+| Persistent/shared files for agents or CI; workspace survives temporary environments | Filesystem (public preview); separate from SQL data and database replication |
+| Data plane required in your AWS account | BYOC (public preview), subject to other gates and onboarding |
 | Independent data warehouse, Iceberg, replacing Snowflake | G0/G7 → Lake (public preview); confirm absence of TP binding |
 | Horizontal scaling, sharding pain, "we've outgrown a single instance" | TiDB's native distributed architecture — no application-level sharding |
 | **Multi-tenant SaaS**, "one customer's queries slow everyone down", tenants moved onto separate instances to contain them | **Resource control** (per-user/workload quotas) and **node groups** (separate compute inside one cluster) on Dedicated. Listen for this as an operational complaint rather than a stated requirement — see G2 in `decision-tree.md`, where it is a hard lock. |

@@ -1,6 +1,13 @@
 # Intake Checklist and Defaults
 
-Fourteen items. Items 1–9 and 14 are **hard inputs** — they drive gates in `decision-tree.md`
+First identify the service family: database transactions, independent AP, shared/persistent
+files, or a mix. For Filesystem-only requests use the focused questions in
+[lake-and-filesystem.md](lake-and-filesystem.md); mark database-only items not applicable,
+not assumed MySQL / >200 GB / DM. Ask SQL target compatibility separately from source type.
+For database requests, ask whether the data plane must run in your own cloud account,
+and whether public/private previews are acceptable. Unknown ownership is not a BYOC requirement.
+
+Fourteen database items. Items 1–9 and 14 are **hard inputs** — they drive gates in `decision-tree.md`
 or the fork in `data-import-playbook.md`. Items 10–13 shape the plan and the report.
 
 **Never block on a missing input.** Apply the default, record it, and list every applied
@@ -40,7 +47,7 @@ everything in one paragraph, confirm the gaps and move on.
 | 5 | **Continuous replication from production?** (ongoing sync vs one-shot cutover) | **G4 — excludes Starter**; DM section of the import plan | **Assume yes** for any production migration — it is the safer assumption, and getting it wrong the other way produces an unusable plan. Confirm explicitly. |
 | 6 | **Feature requirements**: UDF, Trigger, Stored Procedure, Event Scheduler, materialized views, XA, foreign keys, GIS/spatial, **full-text search**, **vector search** | **G3 hard lock**; red/yellow flags in `feature-compatibility.md` | **None assumed** — but always ask directly about stored procedures/triggers and about vector/full-text; customers rarely volunteer these and they are the highest-impact answers |
 | 7 | **Workload profile**: pure OLTP / TP-derived reporting / independent pure AP / separate TP and AP systems. Is the business a core TP system? Must reports use the same fresh, consistent transactional data? How many reports, large scans/joins, modeling layers? | **G0 TP binding**; G7 (Lake); TiFlash direction, with item 2 volume | **Pure OLTP** — no analytical engine assumed; TP binding stays **unknown**, not a stated answer. Record and prioritize confirming it when analytical needs are mentioned |
-| 8 | **Cloud provider + region** | **G1 hard lock** | **Unspecified** — state that GCP or Azure would lock Dedicated, and ask before finalizing |
+| 8 | **Cloud provider + region, target SQL compatibility, data-plane ownership (provider-managed or your own account), preview acceptance** | **G1 hard lock** | **Unspecified** — for the MySQL plan matrix, GCP/Azure leave Dedicated; own-account deployment points to AWS BYOC preview. Lake/Filesystem/PostgreSQL Starter require separate checks. Record unknown ownership/preview tolerance and ask before finalizing |
 | 9 | **Network & compliance**: VPC peering, private endpoint, CMEK, database audit logging, data residency, **tenant/workload isolation** | **G2 hard lock**; DM network options | **None assumed** — but ask about VPC peering specifically for any enterprise customer, and about tenant isolation for any multi-tenant or SaaS customer |
 | 10 | **Tolerable cutover window** (acceptable downtime) | One-shot import vs DM-based near-zero-downtime cutover | **Assume a short window is required** → plan for DM-based cutover |
 | 11 | **PoC goals, success criteria, timeline** | Report action items; scope of the PoC | **Unstated** — list "define PoC success criteria" as the first action item |

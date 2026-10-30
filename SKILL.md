@@ -1,8 +1,8 @@
 ---
 name: tidb-poc-assistant
-description: Help someone evaluating TiDB Cloud scope their own PoC — work through their requirements, pick the offering that fits, flag features TiDB will not support, plan the data migration, and cover the account/billing prerequisites. Use when the user asks which TiDB Cloud product to choose (Starter vs Essential vs Premium vs Dedicated vs TiDB Cloud Lake), wants help preparing for or requesting a PoC, asks how to load or migrate their data into TiDB Cloud, asks whether TiDB supports something their current database uses (stored procedures, triggers, UDF, full-text search, vector search), asks how to mask or anonymize PII during a migration or PoC, or asks what is required to open a paid TiDB Cloud cluster (payment method, credit card, AWS/Azure/Google Cloud Marketplace subscription, PoC credits). The user is the prospective customer, not a vendor engineer. Outputs an assessment report, a machine-readable profile, and a PoC request email they can send to the TiDB team.
+description: Help you scope a TiDB Cloud PoC, compare MySQL-compatible plans including BYOC, choose TiFlash versus Lake, or assess Filesystem for persistent shared files and AI-agent workspaces. Use for product selection, compatibility gaps, migration and data-masking planning, account prerequisites, and PoC reports/profiles/request emails. Selection and planning only; specialist skills handle cluster sizing and deep schema conversion.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # TiDB PoC Assistant
@@ -40,37 +40,29 @@ PingCAP engineer running an assessment on someone else. Everything follows from 
 
 All output is in English.
 
-## Decision tree at a glance
+## Product families first
 
-```
-INTAKE (14 items, never block)
-   │
-   ├─ SHAPE ───────── G0 analytics tied to core TP transactions? ▶ TiFlash vs Lake
-   │
-   ├─ HARD LOCKS ──── G1 GCP/Azure region ─────────────────▶ Dedicated
-   │                  G2 VPC peering / CMEK / node groups ─▶ Dedicated
-   │                  G3 vector or full-text search ───────▶ Starter (or Lake)
-   │
-   ├─ EXCLUSIONS ──── G4 continuous replication (DM) ──────▶ not Starter
-   │                  G5 Kafka changefeed ─────────────────▶ Premium | Dedicated
-   │                  G6 PITR / alerting / Top SQL ────────▶ not Starter
-   │
-   └─ PREFERENCES ─── G7 pure AP / warehouse ──────────────▶ Lake
-                      G8 developer or AI-SaaS app ─────────▶ Starter
-                      G9 elastic production OLTP ──────────▶ Essential | Premium
-                      G10 mission-critical, full HTAP ─────▶ Dedicated
-                              │
-                      feasible set empty? ──▶ ⚠️ CONFLICT: 3 routes, customer decides
-```
+- **MySQL-compatible database plans**: Starter, Essential, Premium, BYOC, Dedicated.
+- **Lake**: independent analytics / warehouse workloads; TP-derived analytics retains the
+  TiFlash direction on a confirmed supporting database plan.
+- **Filesystem**: persistent/shared files for applications, CI, and agents; no TiDB database
+  provisioning required. It can be selected alone or alongside a database/warehouse.
+- **PostgreSQL-compatible Starter**: separate public-preview track, outside the MySQL
+  feature comparison. Verify its own documentation; do not inherit MySQL support claims.
 
-Gates 1–3 point in opposite directions from gates 4–6. That collision is the point of this
-skill — see *Step 2* and [references/decision-tree.md](references/decision-tree.md).
+Use [references/decision-tree.md](references/decision-tree.md) to route by workload family,
+then intersect requirements with the current
+[references/product-matrix.md](references/product-matrix.md). Lake and Filesystem need
+[references/lake-and-filesystem.md](references/lake-and-filesystem.md), not database-tier gates.
 
 ---
 
 ## Step 1 — Intake
 
-Work through the 14-item checklist in
+First identify SQL transactions, independent analytics, persistent/shared files, or a mix.
+For Filesystem-only requests, use its focused intake and mark database inputs not applicable;
+never default a file-only request to a MySQL migration. For database requests, work through
+the 14-item checklist in
 [references/intake-checklist.md](references/intake-checklist.md).
 
 - **Ask conversationally, in plain prose** — 3–4 questions per round, following the four rounds
@@ -79,43 +71,38 @@ Work through the 14-item checklist in
   problems nobody asked about. That volunteered detail is usually the most useful input.
 - **Never block on a missing answer.** Apply the documented default, record it, and list every
   applied default in the report's Assumptions section.
-- Ask directly about **stored procedures/triggers** and about **vector/full-text search**.
+- For database evaluations, ask directly about **stored procedures/triggers** and about **vector/full-text search**.
   People rarely volunteer these, and they are the two answers most likely to change everything.
-- If they will only answer one question, ask about feature requirements (item 6) — it is the
+- For database evaluations, if they will only answer one question, ask about feature requirements (item 6) — it is the
   only input that can make the whole plan infeasible.
 - **React to what they say.** If they mention slow reports, painful sharding, or a tenant they
   had to isolate, follow it — those complaints map directly onto capabilities and constraints.
 
 ## Step 2 — Select the product
 
-Follow [references/decision-tree.md](references/decision-tree.md). Carry a *feasible set*
-starting at all five offerings; apply the workload-shape gate, then hard locks, then
-exclusions, then preferences. Feature availability comes from
-[references/product-matrix.md](references/product-matrix.md).
+For database candidates, intersect the five MySQL plans with each requirement; never
+reset the feasible set or substitute an under-development feature. BYOC requires an explicit
+own-cloud data-plane requirement, currently AWS and public preview. If ownership is unknown,
+keep it conditional rather than adding BYOC operational prerequisites by default.
 
-The G1–G6 tier gates in the overview apply to transactional candidates; check Lake
-requirements separately. For analytical requirements, first ask whether they derive from a core transactional (TP)
-system and need fresh, consistent data in the same database. **TP-derived analytics →
-TiFlash; independent pure AP / data warehouse → Lake.** Query slowness, scans, joins, and
-volume alone do not decide this. Read the Phase 0 guidance for the 50 TB selection signal,
-row-store cost rationale, and separate-workload handling. TiFlash is an analytical engine
-within TiDB, not a sixth offering. Keep Lake capability/deployment checks separate from
-the four transactional tiers; an unmet Lake requirement is an open question or conflict,
-not permission to switch pure AP to TiFlash.
+For analytics, **TP-derived analytics → TiFlash; independent pure AP → Lake**. Keep the
+50 TB signal subordinate to workload binding. "Analytical processing" in the matrix does
+not prove that a particular plan supports TiFlash. Confirm engine support before promising it.
 
-**When the feasible set comes out empty, report a conflict — never improvise a tier.**
-The structural cause is nearly always vector/full-text search (Starter only) colliding with
-a production requirement (which excludes Starter). Present all three escape routes with their
-cost, complexity, and preview risk, plus the cheapest first move: asking their TiDB contact to
-confirm vector tier availability, since the TiDB docs contradict each other on it.
+Filesystem is a separate service recommendation, not a SQL tier. For mixed workloads, record
+each product's role and any unverified integration. Read the service-specific reference.
 
-Record which gate excluded each offering. The report must explain every exclusion — they may
-need to justify the choice to their own architects, and "not recommended" without a reason is
-not defensible.
+Explain every exclusion. Preserve explicit public/private-preview status; ✅ alone does
+not mean GA. Confirm any private-preview access before depending on it. For an empty set,
+report the requirements that collide and applicable alternatives; leave the choice pending.
+For search conflicts, compare split clusters, Lake for a separable AP role, and external
+search. Confirm actual plan/version support if documentation is incomplete or disagrees;
+do not present the historical vector-doc discrepancy as newly verified.
 
 ## Step 3 — Build the import plan
 
-For Lake, confirm its supported stage/load/pipeline path and source compatibility using
+For Filesystem-only requests, plan file access/population and validation, not database
+import or cutover; use the service reference. For Lake, confirm its supported stage/load/pipeline path and source compatibility using
 Lake documentation or your TiDB contact. The DM and transactional-tier import paths below
 do not establish Lake support. Record unverified Lake ingestion as an open question;
 keep the import plans separate when recommending both TP and AP products.
@@ -158,10 +145,12 @@ to read back the live values from their instance before committing to a cutover 
 
 ## Step 4 — Flag feature compatibility
 
-Classify every requirement they state using
+Apply this classification to the selected target. The MySQL-specific list is not a Lake, PostgreSQL-compatible Starter,
+or Filesystem compatibility matrix; check their own documentation. Classify database
+requirements using
 [references/feature-compatibility.md](references/feature-compatibility.md):
 
-- 🔴 **Red** — TiDB does not support it (stored procedures, triggers, UDF, Event Scheduler,
+- 🔴 **Red** — the MySQL-compatible target does not support it (stored procedures, triggers, UDF, Event Scheduler,
   materialized views, XA, GIS indexes). Pair every flag with a replacement approach and the
   question that sizes the rewrite, so they can budget it rather than just worry about it.
 - 🟡 **Yellow** — behavior differs (AUTO_INCREMENT gaps, transaction model, DDL, collations).
@@ -175,7 +164,10 @@ be blindsided later. Their trust in this document depends on it containing bad n
 
 ## Step 5 — Check account & billing prerequisites
 
-Follow [references/account-prerequisites.md](references/account-prerequisites.md).
+For database plans, follow
+[references/account-prerequisites.md](references/account-prerequisites.md). For Lake and
+Filesystem, verify their own billing/access prerequisites; do not copy database-cluster
+credit expiry or recycling timelines. BYOC also needs coordinated cloud onboarding.
 
 **A paid cluster cannot be created without a payment method on the organization.** Two routes:
 a credit card in the TiDB Cloud console (requires the **Organization Owner** or **Billing
@@ -187,8 +179,9 @@ Ask about this in intake round 4 and record it in Next Actions with an owner on 
 a date **before** kickoff. Flag it as a risk when they don't hold the billing role themselves,
 when the marketplace route is chosen (longer procurement lead time), or when PoC credits are
 already running with no payment method set — in that last case state the deadline plainly:
-credits expiring without a payment method blocks new clusters, **recycles existing clusters
-after 3 days and backups after 7**.
+confirm the selected product's expiry and suspension policy. The billing reference documents
+a Dedicated-specific 3-day cluster / 7-day backup recycling policy; recheck it before
+quoting a deadline, and never extend it to other services or plans without evidence.
 
 This is worth their attention precisely because it is not technical work: it usually needs
 procurement or finance rather than engineering, so it sits untouched while everyone focuses on
@@ -196,7 +189,12 @@ the database, then becomes the thing that delayed the PoC.
 
 ## Step 6 — Produce the deliverables and hand off
 
-Fill all three templates:
+For a full PoC assessment, fill all three templates. For a focused capability or selection
+question, answer directly and use only the relevant stages; do not create files or turn it
+into a full intake unless requested.
+
+For non-database services, keep the seven report sections but mark database-only items
+not applicable and use service-specific readiness and data-access plans.
 
 1. **[templates/poc-report.md](templates/poc-report.md)** — seven sections: Your Environment,
    Product Selection, Data Import Plan, Feature Compatibility, Account & Billing
@@ -233,7 +231,9 @@ Rules:
 - After writing, **state the full paths** so they know exactly what to attach.
 
 Then hand off per [references/handoff.md](references/handoff.md): Dedicated → cluster sizing;
-non-MySQL source → the matching TiShift skill.
+non-MySQL source to a MySQL-compatible TiDB target → the matching TiShift skill.
+For BYOC, Lake, Filesystem, or PostgreSQL-target specialist planning, follow the scoped
+handoff reference instead of applying Dedicated formulas or MySQL conversion by default.
 
 ---
 
@@ -247,32 +247,34 @@ non-MySQL source → the matching TiShift skill.
   recommendation they can defend internally is worth more than a favourable one.
 - **No sales voice.** No feature enthusiasm, no "great news", no positioning. State facts and
   costs; let them decide how to feel about them.
-- **Label every preview and beta feature as such.** Premium, TiDB Cloud Lake, vector search,
-  full-text search, and DM on Essential/Premium are all non-GA. Never present any of them as
+- **Label every preview and beta feature as such.** Essential, Premium, BYOC, Lake, and Filesystem are public preview in the verified
+  snapshot. Preserve feature-level annotations (including DM on Essential/Premium/BYOC,
+  Dedicated database audit, vector/full-text search, and Top RU). ✅ alone does not mean GA. Never present any of them as
   a GA commitment. Anything involving Lake carries the public-preview caveat.
 - **An empty feasible set is a conflict report, not a judgment call.** Present the routes with
   their trade-offs and let them decide — it is their architecture.
 - **Explain every exclusion.** An offering marked "not recommended" without a named gate is not
   defensible when their architects ask why.
-- **The product matrix is a snapshot** (2026-07-29). Before they commit to an architecture,
-  point them at <https://docs.pingcap.com/tidbcloud/features/> to re-check — especially vector
-  and full-text tier support, where two docs pages contradict each other.
+- **The product matrix is a snapshot** (2026-10-30). Before they commit to an architecture,
+  point them at <https://docs.pingcap.com/tidbcloud/features/> to re-check — especially search tier support and any feature whose status affects feasibility.
+  Use Lake/Filesystem documentation for those services, and PostgreSQL Starter
+  documentation for that separate compatibility track.
 - **Never invent feature support.** Mark uncertain items "to be confirmed" and tell them to ask
   their TiDB contact. Sending them into a PoC believing something works, when it does not, is
   the worst outcome this skill can produce.
 - **Write deliverables where they can keep them.** Default to the home directory, confirm the
   location before writing, never a temp/scratch path, never silently overwrite an existing
   report.
-- **Billing is a tracked prerequisite, not a footnote.** Every assessment carries the Account
+- **Billing is a tracked prerequisite, not a footnote.** Apply the selected service's rules. Every assessment carries the Account
   & Billing Prerequisites section and a Next Action with an owner on their side, even when the
   answer is "already configured". It is the most common cause of a delayed kickoff and the one
   blocker with no technical dependencies — so it can always start immediately.
 - **No pricing figures and no SLA percentages.** Tell them to get those from their TiDB
   contact. Credits being denominated in US dollars is a unit, not a quote — never extrapolate
   cluster cost from it.
-- **No capacity math.** Node counts, vCPU sizes, and storage always hand off to
-  `tidb-dedicated-sizing` — approximating them here produces numbers that contradict it, and
-  they may quote yours back to the vendor.
+- **No capacity math.** Dedicated node sizing hands off to `tidb-dedicated-sizing`.
+  Other products need a specialist or their own documented sizing/limits; do not apply
+  Dedicated formulas to BYOC, Lake, or Filesystem.
 - **Correct their premises when they are wrong.** If a stated requirement rests on a mistaken
   belief about TiDB — or about their own current system — say so plainly and early rather than
   designing around it. Being told "us-east-1 is an AWS region name, not a GCP one" is worth

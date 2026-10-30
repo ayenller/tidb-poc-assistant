@@ -4,18 +4,36 @@
 #
 # Every field that was assumed rather than stated MUST have `source: assumed`.
 # Unknown values stay `null` — do not invent them, and do not delete the key.
+# Not-applicable database fields also stay null; list their paths in
+# selection.not_applicable_inputs so they are distinguishable from missing inputs.
 
 meta:
   organization: null          # your company or the system being evaluated
   date: null                  # YYYY-MM-DD
   prepared_by: null           # string
-  skill_version: "0.3.0"
+  skill_version: "0.4.0"
+  product_sources_verified: "2026-10-30"
 
 # ---------------------------------------------------------------------------
 # Intake — the 14 items from references/intake-checklist.md
 # `source` is one of: stated | assumed | derived
 # ---------------------------------------------------------------------------
 intake:
+  service_scope:
+    families: []              # database | lake | filesystem; source recorded below
+    target_compatibility: null # mysql | postgresql | not-applicable | to-be-confirmed
+    source: null
+
+  filesystem_requirements:   # relevant for file-only and mixed workloads
+    required: {value: null, source: null}
+    persistence_needs: {value: null, source: null}
+    files_and_access_patterns: {value: null, source: null}
+    sharing_environments: {value: null, source: null}
+    token_scopes: {value: null, source: null} # permissions/paths only; never secret tokens
+    mount_platform: {value: null, source: null}
+    layers_checkpoints: {value: null, source: null}
+    region_limits: {value: null, source: null}
+
   source_database:            # item 1
     type: null                # mysql | aurora-mysql | rds-mysql | cloudsql-mysql |
                               # postgresql | oracle | sqlserver | mongodb | spanner |
@@ -77,6 +95,9 @@ intake:
     cloud_provider: null      # aws | gcp | azure | alibaba
     region: null
     source: null
+    ownership_requirement: {value: null, source: null} # provider-managed | own-account | unspecified
+    preview_acceptance: {value: null, source: null}    # allow-public | allow-private-if-approved | ga-only
+
 
   network_compliance:         # item 9 — G2
     vpc_peering: null         # bool
@@ -130,10 +151,22 @@ intake:
 # Selection result — references/decision-tree.md
 # ---------------------------------------------------------------------------
 selection:
-  recommended: null           # starter | essential | premium | dedicated | lake
+  recommended: null           # starter | essential | premium | byoc | dedicated | lake | filesystem
                               # null for unresolved conflicts or multiple workload roles;
-                              # use analytical_selection.workload_recommendations for roles
-  feasible_set: []            # what survived the gates
+                              # use workload_recommendations for all product families
+  feasible_set: []            # database candidates only; services evaluated separately
+  workload_recommendations: [] # authoritative for multiple roles; single-service can also use this
+    # - workload: "shared CI artifacts"
+    #   service_family: filesystem
+    #   offering: filesystem
+    #   target_compatibility: not-applicable
+    #   analytical_engine: none
+    #   status: conditional   # recommended | conditional | conflict
+    #   preview_status: public-preview
+    #   confirmation_needed: ["region and runtime support"]
+  evidence: []                # url, verified_on, scope, claim/status being relied on
+  not_applicable_inputs: []   # file-only: database volume/QPS/binlogs/schema/cutover/sizing
+
 
   analytical_selection:
     engine: null             # tiflash | lake | none | to-be-confirmed
@@ -142,7 +175,8 @@ selection:
     volume_signal: null      # within-50tb | above-50tb | unknown; signal, not capacity limit
     rationale: null          # include row-store overhead for pure AP when relevant
     confirmation_needed: []  # atypical TP-bound scale, Lake requirements, tier support
-    workload_recommendations: []  # separate TP/AP: one role per entry
+    workload_recommendations: []  # legacy AP-specific field; for new mixed-service profiles
+                                 # use selection.workload_recommendations above
       # - workload: "core billing + derived reports"
       #   offering: dedicated
       #   analytical_engine: tiflash
@@ -163,20 +197,23 @@ selection:
   preview_dependencies: []
     # - feature: "vector search"
     #   status: preview
-    #   note: "tier availability contradicted between docs pages — confirm"
+    #   note: "confirm current plan/version availability if it changes feasibility"
 
   conflict:
     detected: null            # bool
     colliding_requirements: []
-    routes_presented: []      # split-clusters | lake | externalize-search
+    routes_presented: []      # alternatives matching the actual conflict, not search-only
     decision: null            # which route you chose, once you have
 
 # ---------------------------------------------------------------------------
 # Import plan — references/data-import-playbook.md
 # ---------------------------------------------------------------------------
 import_plan:
+  applicability: null        # database | lake | filesystem | separate-plans | not-applicable
+  service_plans: []           # per role: target, verified method, prerequisites, open questions
+                             # Filesystem file population/access is not SQL import or CDC
   path: null                  # 0 | 1 | 2 | 3 | 4 | 5 (transactional TiDB paths only)
-                              # Lake: null; describe verified ingestion in path_name,
+                              # Lake/Filesystem: null; describe verified access in service_plans,
                               # or leave unknown and add an open question
   path_name: null             # e.g. "bulk load + incremental DM", "masked full load"
   full_load_method: null      # dm-all-in-one | dumpling-import | object-storage-import |
@@ -237,6 +274,6 @@ handoffs:
     skill: tidb-dedicated-sizing
     invoked: null
   migration:
-    required: null            # bool — true when mysql_compatible == false
+    required: null            # bool — non-MySQL source to MySQL TiDB target; not Filesystem-only
     skill: null               # e.g. TiShift/oracle-to-tidb
     invoked: null
