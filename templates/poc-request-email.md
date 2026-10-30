@@ -34,7 +34,9 @@ can skip the discovery round; the full assessment is attached.
 - **Throughput**: {{peak QPS/TPS}}, roughly {{read:write ratio}}
 - **Latency target**: {{P95/P99 target, or "no formal SLA"}}
 - **Cloud / region**: {{provider and region}}
-- **Workload**: {{transactional / transactional + reporting / analytical}}
+- **Workload**: {{transactional / TP-derived reporting / independent pure AP / separate TP and AP}}
+- **Analytics relationship**: {{TP-bound yes / no / unknown; same-database freshness and
+  consistency needs, report count, scans/joins/modeling layers when relevant}}
 
 **What we need**
 
@@ -47,6 +49,11 @@ can skip the discovery round; the full assessment is attached.
 
 Based on the above, **{{offering}}** looks like the fit — {{the reasoning in one or two
 sentences, naming the constraints that drove it rather than the features that attracted us}}.
+
+{{If analytics is in scope, state TiFlash for TP-derived reporting or Lake for independent
+pure AP, the TP-binding evidence, and the supporting volume signal. For pure AP, explain
+why a TiKV row store is unnecessary; for TP-bound >50 TB, request architecture review.
+For separate systems, name each product role and ask about the integration path.}}
 
 {{If two or more requirements independently point to the same offering, say so — it means
 there's little to debate and you can go straight to sizing.}}

@@ -14,7 +14,9 @@ Suggested grouping:
 1. **Round 1 — the shape of the thing**: source DB type & version, data volume, cloud +
    region. (Items 1, 2, 8 — this round alone often fires G1 and decides the import fork.)
 2. **Round 2 — the workload**: peak QPS/TPS, read/write ratio, latency SLA, workload profile.
-   (Items 3, 4, 7)
+   Ask whether analytics derives from a core TP system or runs as an independent AP
+   platform; include report count, freshness/consistency needs, scans/joins, and modeling
+   layers as follow-ups within item 7. (Items 3, 4, 7)
 3. **Round 3 — the constraints**: continuous replication, feature requirements, network &
    compliance, **data masking**. (Items 5, 6, 9, 14 — this round decides most conflicts.) If they are
    multi-tenant or SaaS, ask directly whether one tenant's workload can be allowed to affect
@@ -32,12 +34,12 @@ everything in one paragraph, confirm the gaps and move on.
 | # | Input | Drives | Default when missing |
 |---|---|---|---|
 | 1 | **Source database type & version** (MySQL, Aurora, PostgreSQL, Oracle, SQL Server, MongoDB, Spanner, CockroachDB, …) | Import path; TiShift handoff; compatibility red flags | **MySQL-compatible** — state the assumption prominently, since a non-MySQL source changes the entire import plan |
-| 2 | **Total raw data volume** (uncompressed, data + indexes), plus largest single table | **The 200 GB import fork**; sizing handoff | **Unknown → assume > 200 GB** and present the object-storage import path; note that under 200 GB a simpler path exists |
+| 2 | **Total raw data volume** (uncompressed, data + indexes), plus largest single table | **The 200 GB import fork**; **50 TB analytical-selection signal** together with item 7; sizing handoff | **Unknown → assume > 200 GB** and present the object-storage import path; note that under 200 GB a simpler path exists |
 | 3 | **Peak QPS / TPS**, read/write ratio | Sizing handoff only | **None assumed** — pass through as unknown; `tidb-dedicated-sizing` has its own defaults |
 | 4 | **Latency SLA** (P95/P99 target) | Sizing handoff only | **None assumed** — pass through as unknown |
 | 5 | **Continuous replication from production?** (ongoing sync vs one-shot cutover) | **G4 — excludes Starter**; DM section of the import plan | **Assume yes** for any production migration — it is the safer assumption, and getting it wrong the other way produces an unusable plan. Confirm explicitly. |
 | 6 | **Feature requirements**: UDF, Trigger, Stored Procedure, Event Scheduler, materialized views, XA, foreign keys, GIS/spatial, **full-text search**, **vector search** | **G3 hard lock**; red/yellow flags in `feature-compatibility.md` | **None assumed** — but always ask directly about stored procedures/triggers and about vector/full-text; customers rarely volunteer these and they are the highest-impact answers |
-| 7 | **Workload profile**: pure OLTP / OLTP + reporting (HTAP) / heavy OLAP or warehouse | G7 (Lake); TiFlash recommendation | **Pure OLTP** — no TiFlash; note it can be added online later |
+| 7 | **Workload profile**: pure OLTP / TP-derived reporting / independent pure AP / separate TP and AP systems. Is the business a core TP system? Must reports use the same fresh, consistent transactional data? How many reports, large scans/joins, modeling layers? | **G0 TP binding**; G7 (Lake); TiFlash direction, with item 2 volume | **Pure OLTP** — no analytical engine assumed; TP binding stays **unknown**, not a stated answer. Record and prioritize confirming it when analytical needs are mentioned |
 | 8 | **Cloud provider + region** | **G1 hard lock** | **Unspecified** — state that GCP or Azure would lock Dedicated, and ask before finalizing |
 | 9 | **Network & compliance**: VPC peering, private endpoint, CMEK, database audit logging, data residency, **tenant/workload isolation** | **G2 hard lock**; DM network options | **None assumed** — but ask about VPC peering specifically for any enterprise customer, and about tenant isolation for any multi-tenant or SaaS customer |
 | 10 | **Tolerable cutover window** (acceptable downtime) | One-shot import vs DM-based near-zero-downtime cutover | **Assume a short window is required** → plan for DM-based cutover |
@@ -48,6 +50,9 @@ everything in one paragraph, confirm the gaps and move on.
 
 ## Normalization
 
+- The 50 TB selection signal uses the same single-copy raw-volume basis as item 2. Compare
+  only when that basis is known; for warehouse data with unclear sizing basis, record the
+  uncertainty rather than inventing a conversion. Workload binding remains primary.
 - Treat customer-quoted "TB" as TiB (1 TB = 1,024 GiB) unless they clearly mean decimal;
   record the interpretation.
 - TPS → QPS: multiply by statements per transaction; if unknown assume 5 and record it.

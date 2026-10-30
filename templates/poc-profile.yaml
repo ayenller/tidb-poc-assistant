@@ -9,7 +9,7 @@ meta:
   organization: null          # your company or the system being evaluated
   date: null                  # YYYY-MM-DD
   prepared_by: null           # string
-  skill_version: "0.1.0"
+  skill_version: "0.3.0"
 
 # ---------------------------------------------------------------------------
 # Intake — the 14 items from references/intake-checklist.md
@@ -59,10 +59,19 @@ intake:
     other: []                 # list of strings
     source: null
 
-  workload_profile:           # item 7 — G7 / TiFlash
-    shape: null               # oltp | htap | heavy-olap
+  workload_profile:           # item 7 — G0 TP binding / G7 / TiFlash
+    shape: null               # oltp | htap | heavy-olap (retain existing vocabulary)
     reporting_analytics: null # bool
     source: null
+    analytical_context:      # per-field provenance; unknown values remain null
+      tp_transaction_binding: {value: null, source: null}  # bool
+      core_tp_system: {value: null, source: null}          # bool
+      separate_tp_ap_systems: {value: null, source: null}  # bool
+      same_database_required: {value: null, source: null} # bool
+      freshness_consistency: {value: null, source: null}  # string
+      report_count: {value: null, source: null}           # integer
+      large_scans_joins: {value: null, source: null}      # bool
+      multi_layer_modeling: {value: null, source: null}   # bool
 
   deployment:                 # item 8 — G1
     cloud_provider: null      # aws | gcp | azure | alibaba
@@ -122,11 +131,28 @@ intake:
 # ---------------------------------------------------------------------------
 selection:
   recommended: null           # starter | essential | premium | dedicated | lake
+                              # null for unresolved conflicts or multiple workload roles;
+                              # use analytical_selection.workload_recommendations for roles
   feasible_set: []            # what survived the gates
+
+  analytical_selection:
+    engine: null             # tiflash | lake | none | to-be-confirmed
+                             # null for separate systems; record each role below
+    tp_binding_evidence: null # stated evidence or explicit assumption; never infer from slowness
+    volume_signal: null      # within-50tb | above-50tb | unknown; signal, not capacity limit
+    rationale: null          # include row-store overhead for pure AP when relevant
+    confirmation_needed: []  # atypical TP-bound scale, Lake requirements, tier support
+    workload_recommendations: []  # separate TP/AP: one role per entry
+      # - workload: "core billing + derived reports"
+      #   offering: dedicated
+      #   analytical_engine: tiflash
+      # - workload: "independent warehouse"
+      #   offering: lake
+      #   analytical_engine: lake
 
   gates_fired: []
     # - gate: G1
-    #   type: hard_lock       # hard_lock | exclusion | preference
+    #   type: hard_lock       # workload_shape | hard_lock | exclusion | preference
     #   trigger: "GCP region required"
     #   effect: "lock dedicated"
 
@@ -149,7 +175,9 @@ selection:
 # Import plan — references/data-import-playbook.md
 # ---------------------------------------------------------------------------
 import_plan:
-  path: null                  # 0 | 1 | 2 | 3 | 4 | 5
+  path: null                  # 0 | 1 | 2 | 3 | 4 | 5 (transactional TiDB paths only)
+                              # Lake: null; describe verified ingestion in path_name,
+                              # or leave unknown and add an open question
   path_name: null             # e.g. "bulk load + incremental DM", "masked full load"
   full_load_method: null      # dm-all-in-one | dumpling-import | object-storage-import |
                               # dms-masked | tishift
