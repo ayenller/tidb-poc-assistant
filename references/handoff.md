@@ -7,8 +7,10 @@ rather than approximating them.
 
 ## Handoff 1 — Cluster sizing → `tidb-dedicated-sizing`
 
-**When**: the recommendation lands on **Dedicated** (or they ask for node counts,
-specs, or cost shape on any tier).
+**When**: the recommendation lands on **Dedicated**. For another product, confirm the
+sizing specialist supports it rather than applying Dedicated formulas to it. BYOC needs
+its onboarding team for cloud/resource-pool planning; Lake warehouse sizing and Filesystem
+usage/limits follow their own documentation and contacts, not Dedicated node formulas.
 
 **Never compute node counts, vCPU sizes, or storage in this skill.** That skill has the
 official formulas from <https://docs.pingcap.com/tidbcloud/size-your-cluster/>, published
@@ -43,7 +45,10 @@ documented defaults and reports them — so an incomplete handoff is still usefu
 
 ## Handoff 2 — Non-MySQL source → TiShift `*-to-tidb`
 
-**When**: intake item 1 is anything other than a MySQL-compatible database.
+**When**: the source is non-MySQL and the target is a MySQL-compatible TiDB database.
+For Lake or PostgreSQL-compatible Starter, confirm the appropriate migration mechanism
+rather than assuming a TiShift-to-MySQL workflow applies. Filesystem-only requests have
+no SQL schema conversion handoff.
 
 Those skills own schema conversion, type mapping, source-specific compatibility rules, and
 source-specific CDC. This skill's `feature-compatibility.md` is a first pass only — say so

@@ -1,86 +1,49 @@
-# Product Selection Decision Tree
+# Product selection and requirement filtering
 
-Evaluate the gates **in order**. Carry a *feasible set* of offerings, starting with
-`{Starter, Essential, Premium, Dedicated, Lake}`. Hard locks intersect the eligible candidates; exclusions
-remove members; preferences rank whatever survives. Never reintroduce an excluded offering
-to satisfy a later gate. G1–G6 describe the four transactional tiers in the snapshot matrix,
-not verified Lake capabilities. For a pure-AP Lake candidate, confirm deployment, ingestion,
-search, security, and recovery requirements against Lake documentation or the TiDB contact;
-record unverified requirements as open questions and confirmed incompatibilities as conflicts.
+Verified matrix: 2026-10-30. Read `product-matrix.md` for evidence and lifecycle caveats.
+Route by product family before applying gates. Each constraint **intersects** the current
+set; a later lock cannot resurrect a rejected option. Unknown support is an open question
+and a conditional recommendation, not a verified match or an automatic exclusion.
 
-Record, for every gate that fires, which input triggered it — the report must explain why
-each offering was excluded, not just which one won.
-
-## Mind map
+## Routing map
 
 ```mermaid
 flowchart TD
-    A["A. INTAKE — 14 inputs<br/>never block; apply defaults"] --> B{"B. PRODUCT SELECTION<br/>feasible set = all 5"}
-
-    B --> G0{"G0 · WORKLOAD SHAPE<br/>Analytics tied to core TP<br/>transactions?"}
-    G0 -->|yes, or pure OLTP| X0["exclude Lake; if TP-derived AP,<br/>require confirmed TiFlash support"]
-    G0 -->|separate TP and AP| SPLIT["Evaluate each workload separately"]
-    SPLIT --> X0
-    SPLIT --> L0
-    G0 -->|no — pure AP| L0["Lake = leading candidate"]
-    X0 --> G1
-    L0 --> LC{"Lake requirements<br/>checked separately"}
-    LC -->|confirmed incompatible| CONF
-    LC -->|unknown| LQ["Record open questions;<br/>recommendation stays conditional"]
-    LQ --> P7
-
-    G1{"G1 · HARD LOCK<br/>Region = GCP or Azure?"}
-    G1 -->|yes| D1["LOCK: Dedicated"]
-    G1 -->|no| G2
-
-    D1 --> G2{"G2 · HARD LOCK<br/>VPC peering / CMEK / dual-region<br/>backup / node groups / resource<br/>control / manual resize / pause?"}
-    G2 -->|yes| D2["LOCK: Dedicated"]
-    G2 -->|no| G3
-    D2 --> G3
-
-    G3{"G3 · HARD LOCK<br/>Vector search OR full-text search?"}
-    G3 -->|yes| S1["LOCK: Starter (preview)"]
-    G3 -->|no| G4
-    S1 --> G4
-
-    G4{"G4 · EXCLUDE<br/>Continuous replication via DM?"}
-    G4 -->|yes| X1["exclude Starter"]
-    G4 -->|no| G5
-    X1 --> G5
-
-    G5{"G5 · EXCLUDE<br/>Changefeed to Kafka?"}
-    G5 -->|yes| X2["keep Premium, Dedicated"]
-    G5 -->|no| G6
-    X2 --> G6
-
-    G6{"G6 · EXCLUDE<br/>PITR / alerting / Prometheus /<br/>Datadog / Top SQL?"}
-    G6 -->|yes| X3["exclude Starter"]
-    G6 -->|no| C
-    X3 --> C
-
-    C{"Feasible set empty?"}
-    C -->|yes| CONF["⚠️ CONFLICT REPORT<br/>3 escape routes with tradeoffs<br/>— never force a tier"]
-    C -->|no| P["PREFERENCES G7–G10<br/>rank the survivors"]
-
-    LC -->|compatible| P7["G7 independent pure AP / warehouse /<br/>Iceberg / Snowflake → Lake"]
-    P --> P8["G8 developer or AI-SaaS,<br/>small data, PAYG → Starter"]
-    P --> P9["G9 production OLTP, elastic,<br/>hands-off → Essential<br/>(Premium if cross-AZ / audit)"]
-    P --> P10["G10 mission-critical, cross-AZ HA,<br/>full HTAP, compliance → Dedicated"]
-
-    P7 --> R["RECOMMEND per workload<br/>+ explain exclusions and unknowns"]
-    P8 --> R
-    P9 --> R
-    P10 --> R
-    CONF --> PENDING["Choice pending; present applicable alternatives"]
+    A["Identify workload family"] --> F{"Persistent/shared files?"}
+    F -->|yes| FS["Filesystem: focused intake; public preview"]
+    F -->|SQL also needed| DB["Assess SQL workload separately"]
+    F -->|SQL only| DB
+    DB --> PG{"Target compatibility?"}
+    PG -->|PostgreSQL| PGR["Separate Starter preview docs; no MySQL matrix"]
+    PG -->|MySQL or analytics| G0{"TP-derived analytics or independent AP?"}
+    G0 -->|independent AP| L["Lake: service-specific checks; public preview"]
+    G0 -->|TP, with or without derived AP| TP["Starter, Essential, Premium, BYOC, Dedicated"]
+    G0 -->|separate TP and AP| SPLIT["Evaluate both roles"]
+    SPLIT --> TP
+    SPLIT --> L
+    TP --> OWN{"Data plane must run in your cloud account?"}
+    OWN -->|yes| B["BYOC candidate; verify AWS, onboarding and preview"]
+    OWN -->|no or unknown| T["Retain plans; ownership assumptions explicit"]
+    B --> G["G1-G6: intersect region, feature and operational requirements"]
+    T --> G
+    G --> C{"Feasible set empty?"}
+    C -->|yes| X["Conflict: applicable alternatives; decision pending"]
+    C -->|no| P["G8-G10: rank surviving database plans"]
+    FS --> R["Per-workload recommendation; caveats and open questions"]
+    L --> R
+    PGR --> R
+    P --> R
 ```
 
----
+For mixed file/database/warehouse needs, recommend each service for its own role.
+Do not imply that Filesystem stores Lake tables, imports S3 directly, or replicates SQL.
+An explicit Filesystem-only request skips database migration defaults and sizing.
 
 ## Phase 0 — Is the analytical workload tied to TP transactions?
 
 Selection guidance: [TiFlash vs Lake: Selection Guide](https://docs.google.com/document/d/1ZDQs9fBaLbnURM2aTshQoowIZPVU72j2Q2scXlzEw-U/edit?tab=t.0),
-last modified 2026-10-23; incorporated 2026-10-30. This supplements the older feature-matrix
-snapshot; it does not refresh feature or preview availability.
+last modified 2026-10-23; incorporated 2026-10-30. This is workload-selection guidance; use the separately refreshed 2026-10-30
+product matrix for availability.
 
 The primary rule is **AP requirements derived from a core TP workload → TiFlash; pure AP
 (data-warehouse-style) → Lake.** TiFlash is a columnar replica engine within a transactional
@@ -89,14 +52,15 @@ between its transactions and reports before classifying slow queries or large jo
 
 | Workload relationship | Effect |
 |---|---|
-| Pure OLTP, no analytical requirement | **Exclude Lake**; select among the four transactional tiers. No TiFlash requirement. |
-| Core TP system with derived analytics (billing, orders, transactions; a few reports or real-time queries needing fresh, consistent data in the same database) | **TiFlash direction; exclude Lake for this workload.** Select a transactional offering with confirmed TiFlash support (the snapshot identifies Dedicated for full HTAP). Do not assume every transactional tier has TiFlash. |
+| Pure OLTP, no analytical requirement | **Exclude Lake**; select among the five MySQL-compatible database plans. No TiFlash requirement. |
+| Core TP system with derived analytics (billing, orders, transactions; a few reports or real-time queries needing fresh, consistent data in the same database) | **TiFlash direction; exclude Lake for this workload.** Select a transactional offering with confirmed TiFlash support (Dedicated is the established full-HTAP candidate; confirm exact engine availability). Do not assume every transactional tier has TiFlash. |
 | Pure AP with no TP transaction binding, including a standalone warehouse | **Lake direction**, even below 50 TB. Do not retain TiDB + TiFlash merely because it can execute analytical SQL. Validate Lake requirements separately from G1–G6. |
 | TP and independent AP as separate systems | Evaluate each workload separately. A transactional tier (with TiFlash if it has TP-derived reports) and Lake may both be appropriate; state their respective roles and the unverified integration path. |
 
 When G0 identifies TP-derived analytics that requires TiFlash, intersect the transactional
-candidates with confirmed TiFlash-capable offerings before continuing. With the current
-snapshot, use Dedicated for full HTAP; do not let G8/G9 select an elastic tier without
+candidates with confirmed TiFlash-capable offerings before continuing. The comparison
+only says analytical processing, not which engine. Dedicated is the established full-HTAP
+candidate; for BYOC or another plan, confirm TiFlash support explicitly; do not let G8/G9 select an elastic tier without
 confirming TiFlash support. If confirmation is pending, make the recommendation conditional.
 
 ### Volume and processing signals
@@ -126,208 +90,139 @@ than wrongly omitting one.
 feasible set, Lake returns as Route B — at that point it is being offered as a deliberate
 architecture change, not as a match to the stated workload.
 
-## Phase 1 — Hard locks
+## Deployment ownership — before G1
 
-A hard lock intersects the current feasible set with the permitted offering(s); it cannot
-reset that set. If the result is empty or two hard locks disagree, that is a conflict —
-jump to *Conflict arbitration*. Apply these tier gates to transactional candidates only,
-including the transactional side of a split design.
+An explicit requirement for the **data plane in your own cloud account** points to BYOC.
+The current introduction documents AWS public preview; confirm the region, onboarding,
+permissions, and all remaining requirements. This does not override G1–G6. If BYOC is
+required but another requirement excludes it, report the collision, not Dedicated as an
+ownership-equivalent replacement. A customer-owned bucket alone is not a BYOC requirement.
+If ownership is unspecified, do not assume it is required or prescribe cloud onboarding.
 
-### G1 — Cloud provider and region
+## G1 — Provider and region (MySQL-compatible plans only)
 
-| Requirement | Result |
+| Requirement | Eligible plans before other gates |
 |---|---|
-| Google Cloud region | **LOCK Dedicated** (Starter/Essential/Premium have no GCP) |
-| Azure region | **LOCK Dedicated** (Premium on Azure is under development) |
-| AWS region | no constraint |
-| Alibaba Cloud region | excludes Dedicated |
+| AWS | All five; confirm exact region |
+| Google Cloud | Dedicated |
+| Azure | Dedicated; Premium/BYOC are under development, not available |
+| Alibaba Cloud | Starter, Essential, Premium; BYOC under development, Dedicated unavailable |
 
-Ask for the region explicitly. Customers often state a cloud without realizing it is the
-single most binding constraint in the whole conversation.
+Check Lake, Filesystem, and PostgreSQL-compatible Starter regions separately.
 
-### G2 — Enterprise infrastructure and compliance
+## G2 — Infrastructure, isolation, and security
 
-Any one of these **LOCKs Dedicated**:
-
-- VPC peering (private endpoint alone does **not** trigger this — all tiers have it)
-- CMEK (customer-managed encryption keys)
-- Dual-region backup
-- **Workload / tenant isolation inside one cluster** — node groups, resource control, quotas.
-  See the note below; this one you usually have to ask about rather than being told.
-- Manual cluster resizing, or pause & resume
-- New Relic integration
-
-**Ask about tenant isolation explicitly for any multi-tenant or SaaS customer.** Customers
-describe their noisy-neighbour problem as an operational complaint ("one customer's report
-slows everyone down", "we had to move that tenant to its own instance") and almost never as a
-product requirement — so it rarely surfaces on its own, and then appears late as a surprise
-constraint. TiDB Cloud Dedicated addresses it with **resource control** (quotas per user or
-workload) and **node groups** (physically separate compute within one cluster). Neither exists
-on Starter or Essential, and resource control is still under development on Premium, so this is
-a genuine hard lock rather than a preference. It is also far cheaper to design in at PoC time
-than to retrofit once tenants are live.
-
-Database audit logging is *not* here — it is available on Premium (✅) and Dedicated (✅), so
-it narrows rather than locks.
-
-### G3 — Vector search or full-text search
-
-Per `product-matrix.md`, these live on **Starter only**.
-
-| Requirement | Result |
+| Requirement | Effect |
 |---|---|
-| Vector search, or full-text search | **LOCK Starter** (preview) |
-| Independent pure AP identified in G0 | Already on the separate Lake path (public preview); verify its search capabilities there, not through the transactional tier lock |
+| Node groups or resource control | Dedicated; Premium/BYOC resource control is under development |
+| Dual-region backup | Dedicated; Premium/BYOC under development |
+| VPC peering | Dedicated normally; Premium/BYOC only with explicit private-preview acceptance and confirmed access |
+| CMEK | Dedicated normally; Premium only with confirmed private-preview access; BYOC under development |
+| Manual modification or pause/resume | BYOC or Dedicated; ownership and other gates decide |
+| Private endpoint alone | No exclusion; all five show support |
+| Audit logging | Premium, BYOC, Dedicated (Dedicated feature is public preview); Essential only with confirmed private-preview access |
 
-Distinguish carefully: a transactional app that also does semantic retrieval → Starter.
-An independent AP platform with vector or full-text as one of several engines → Lake.
-Large scans or joins within core TP-derived reporting do not by themselves make it pure AP.
-If G0 requires TiFlash and G3 points to Starter, confirm the actual TiFlash/search tier
-support or report a conflict; do not silently replace the TP requirement with Lake.
+Ask multi-tenant teams about noisy-neighbor problems before assuming they need node groups.
+Cross-AZ failover alone does not imply Dedicated: Premium/BYOC also support it. A private
+preview is a conditional alternative until access is confirmed, not a silent hard match.
 
-Always attach the preview caveat, and the documentation-contradiction note from
-`product-matrix.md`, whenever this gate fires.
+## G3 — Search and target compatibility
 
----
+The MySQL matrix lists vector and full-text search on Starter in public preview. Premium
+and BYOC full-text are under development; do not offer them as available. When this conflicts
+with production constraints, first confirm actual tier/version support against live docs or
+your TiDB contact. The previous vector-overview discrepancy was not reverified this refresh.
 
-## Phase 2 — Exclusions
+Lake's overview separately documents vector, text-search, and geo capabilities. It can
+serve independent AP or a separable analytical/search role, not replace required TP.
+Do not route TP-derived reports to Lake solely because queries scan or join large tables.
+Confirm TiFlash availability if required; the generic analytical-processing row does not
+prove engine support on Starter, Essential, Premium, or BYOC.
 
-### G4 — Continuous replication from production (DM)
+PostgreSQL-compatible Starter is a separate preview track. Do not run this gate's MySQL
+search rules or the MySQL compatibility list against it without checking its own docs.
 
-If they need ongoing replication from a live source database (not a one-shot
-cutover): **exclude Starter.** DM is unavailable there.
+## G4 — Incoming MySQL migration (DM)
 
-Essential and Premium have it in preview; Dedicated has it GA. If they need DM to be
-GA rather than preview, narrow further to Dedicated.
+Exclude Starter for a verified DM requirement. Essential, Premium, and BYOC have DM in
+public preview; Dedicated is listed supported. A strict GA requirement excludes those
+preview paths and still requires confirmation of the exact Dedicated workflow. Do not
+confuse incoming DM with outgoing changefeeds. The database migration playbook does not
+establish ingestion support for Lake or Filesystem.
 
-### G5 — Changefeed to Kafka
+## G5 — Outgoing changefeeds
 
-Downstream streaming (Kafka, and by extension Flink/data-lake pipelines fed from it):
-**keep only Premium and Dedicated.** Essential has it in private preview (🔒, needs a support
-ticket); Starter has none.
+For changefeeds to Kafka or another MySQL-compatible database, keep Premium, BYOC, and
+Dedicated. Essential requires confirmed private-preview access; Starter is unavailable.
+A generic ongoing-sync requirement must be mapped to an actual supported tool before
+applying this gate. File sharing and Filesystem layers are not database CDC.
 
-### G6 — Production observability and recoverability
+## G6 — Operations, recovery, and deployment mode
 
-Any one of these **excludes Starter**:
+- PITR, alerting, or Top SQL/Top RU excludes Starter. Essential/Premium/BYOC use Top RU
+  public preview; do not describe it as identical to Dedicated Top SQL.
+- Manual backups keep Premium, BYOC, Dedicated.
+- Prometheus/Grafana: Essential/Premium public preview, BYOC private preview, Dedicated
+  supported. Starter unavailable.
+- Datadog **and New Relic**: Essential/Premium public preview or Dedicated; BYOC/Starter
+  unavailable. New Relic alone no longer locks Dedicated.
+- File export: Starter/Essential/Premium/BYOC public preview; Dedicated unavailable.
+  This is bulk export, not a changefeed or Filesystem integration.
+- Single-AZ is listed for Essential/BYOC; cross-AZ failover for Premium/BYOC/Dedicated.
+  Validate whether single-AZ is required or merely acceptable; do not exclude cross-AZ
+  plans just because the workload can tolerate single-AZ.
+- Events are listed on every plan; do not exclude Premium using the old snapshot.
 
-- Point-in-time recovery
-- Alerting
-- Prometheus / Grafana integration
-- Datadog integration
-- Top SQL
-- Manual backup (narrows to Premium/Dedicated)
+## G7–G10 — Rank survivors
 
-Most customers describing a production migration will trip at least one of these. That is
-usually what rules Starter out even when nobody said "we need PITR" — ask.
+- **G7 Lake**: independent pure AP; keep TP binding primary and the earlier 50 TB signal
+  secondary. Use the service-specific reference and public-preview caveat.
+- **G8 Starter**: developer workloads needing its features and allowance, where the surviving
+  operational constraints fit. Target compatibility and cloud affect preview status.
+- **G9 Essential/Premium**: elastic database workloads; Essential for simpler production
+  needs, Premium when cross-AZ, outgoing changefeeds, or stronger audit requirements apply.
+  Both are public preview; do not promise GA production guarantees.
+- **G10 Dedicated/BYOC**: Dedicated for supported compliance/isolation/region constraints
+  and confirmed full HTAP; BYOC for own-cloud data-plane requirements with compatible
+  features and preview tolerance. BYOC autoscaling does not imply pay-as-you-use billing.
 
----
+## Conflicts and output
 
-## Phase 3 — Preferences
+For an empty set, name the exact requirements, evidence dates, and their incompatible
+support. Leave the final decision pending. For a search-versus-production conflict, compare:
 
-Apply to whatever survived. These rank rather than eliminate; if several fire, prefer the one
-matching their *primary* workload.
-
-### G7 → Lake
-Independent pure AP / data warehouse with no TP transaction binding. Large scans,
-large-table join aggregations, multi-layer data modeling, and volume >50 TB reinforce
-this direction; Iceberg or replacing Snowflake/BigQuery/Redshift are supporting context.
-Do not override G0 merely because a TP-bound report is slow or scans a large table.
-Always label public preview.
-
-### G8 → Starter
-Developer projects and **AI/SaaS applications**; small or unknown data volume; wants
-pay-as-you-go with no capacity planning; values SQL Editor and Data Branch; no production
-recovery/observability requirements yet.
-
-### G9 → Essential
-Production OLTP that wants elasticity and no capacity management. Adds PITR, alerting,
-backup recycle bin, DM (preview) over Starter.
-**Prefer Premium instead** if they need cross-AZ failover, Kafka changefeeds,
-manual backup, or database audit logging — and label Premium public preview.
-
-### G10 → Dedicated
-Mission-critical systems; cross-AZ HA; **full HTAP via TiFlash**; enterprise compliance;
-predictable provisioned capacity; GCP/Azure. This is also where everything locked by G1/G2
-lands.
-
----
-
-## Conflict arbitration
-
-**Trigger**: the feasible set is empty, or two hard locks disagree.
-
-The structural cause is almost always G3 (vector/full-text → Starter) colliding with
-G1/G2/G4/G5/G6 (→ away from Starter). Concretely: *anything that needs vector or full-text
-search plus anything production-grade.*
-
-**Do not resolve this yourself. Do not pick a tier anyway.** Emit a "⚠️ Requirement conflict"
-section naming the exact requirements that collide. For the search-versus-production
-conflict, present all three routes below with their tradeoffs. For other conflicts (including
-a confirmed Lake incompatibility), present alternatives that address the actual collision;
-do not force search-specific routes. Let them choose:
-
-### Route A — Split clusters
-Starter for the vector / full-text workload, Essential or Dedicated for transactional data.
-The application routes queries to the right cluster.
-
-- **Cost**: two clusters.
-- **Complexity**: application-layer routing; data must be synchronized between them, and the
-  sync path itself needs designing (this is an open question, not a solved one).
-- **Risk**: the search side is still on a preview feature.
-- **Best when**: the search workload is genuinely separable from the transactional one.
-
-### Route B — TiDB Cloud Lake
-One engine covering ANSI SQL, vector, and full-text.
-
-- **Cost**: warehouse compute, separate from the transactional cluster.
-- **Complexity**: low if analytics is the whole story; the Lake ↔ transactional-cluster
-  integration path is not clearly documented — flag it.
-- **Risk**: public preview. Not appropriate for a customer who needs GA guarantees.
-- **Best when**: the workload is analytics-first and they tolerate preview.
-
-### Route C — Externalize search
-Keep business data in TiDB (any tier that satisfies the production constraints); put vector
-or full-text in a purpose-built external service.
-
-- **Cost**: a third-party service.
-- **Complexity**: dual writes and consistency management between TiDB and the search store.
-- **Risk**: lowest on the TiDB side — no preview dependency.
-- **Best when**: production constraints are non-negotiable and search is secondary.
-
-Also state the fourth possibility explicitly: **confirm the vector tier availability first.**
-Because the TiDB docs contradict each other (see `product-matrix.md`), the conflict may not
-be real. Asking their TiDB contact before redesigning the architecture is the cheapest
-move available and should be listed as the first action item.
-
----
-
-## Worked selection cases
-
-| Input | Expected direction | Reason / follow-up |
+| Route | Costs and complexity to explain | Boundary |
 |---|---|---|
-| Core billing system, 20 TB, two fresh reports on the same data | TiFlash on a confirmed supporting tier | Analytics is derived from core TP. |
-| Standalone 10 TB warehouse, no TP in scope | Lake | Pure AP is sufficient; >50 TB is not a minimum. |
-| Pure AP, 100 TB, multi-layer models and large joins | Lake | No TP purpose for the extra TiKV row store. |
-| Core order system, exactly 50 TB, fresh reports | TiFlash direction | Within the typical profile; not a capacity boundary. |
-| Core billing system, 80 TB, same-database consistency required | TiFlash direction plus architecture/sizing review | Volume does not erase TP binding. |
-| Core TP plus a separate 100 TB warehouse | Transactional tier for TP; Lake for AP | Record both roles and confirm integration. |
-| Slow reports only; TP binding and volume unknown | Analytical engine to be confirmed | Record provisional OLTP assumption; prioritize the TP-binding question. |
-| Pure AP on GCP with CMEK required | Lake direction, deployment/security unconfirmed | G1/G2 transactional locks cannot establish Lake support or select Dedicated for pure AP. |
-| TP-derived analytics requiring TiFlash plus full-text search | Confirm tier support or report conflict | G3 cannot reintroduce Starter if it lacks required TiFlash support. |
+| Split search and transactional clusters | Multiple services, query routing, synchronization and freshness | Each side must satisfy its own requirements |
+| Lake for a separable AP/search role | Warehouse compute, data movement, integration validation | Public preview; retain TP separately |
+| External search service | Third-party cost, synchronization and consistency management | Confirm integration and service status; do not promise no preview dependencies |
 
----
+For other collisions, present relevant alternatives rather than forcing this search list.
+Examples include BYOC plus GCP, BYOC plus mandatory New Relic, or GA-only plus Filesystem.
 
-## Output format for Stage B
+Produce: recommendation per workload, requirement-to-gate rationale, reasons for each
+exclusion, public/private-preview dependencies, unverified items, and applicable conflicts.
+Filesystem/Lake unknowns must remain conditional rather than being filtered by SQL tier gates.
 
-Produce, in this order:
+## Worked cases for review
 
-1. **Recommendation** — one offering per workload, named; for separate TP and AP systems,
-   name both roles. State TiFlash / Lake / no analytical engine / to be confirmed and the
-   TP-binding evidence. A conflict leaves the final choice pending rather than naming a
-   winner. Record volume signals without treating 50 TB as a product limit.
-2. **Why** — the gates that led there, quoting their own stated requirement for each.
-3. **Why not the others** — one line per excluded offering, naming the gate that removed it.
-   Never leave an offering unexplained; "not recommended" without a reason is not acceptable
-   output.
-4. **Preview/beta caveats** — every preview-status feature the recommendation depends on.
-5. **Conflicts**, if any — the full arbitration section above.
+| Input | Expected direction |
+|---|---|
+| Core billing, 20 TB, two fresh reports | TiFlash-capable database plan; confirm engine |
+| Standalone 10 TB warehouse | Lake; no 50 TB minimum |
+| Independent AP, 100 TB, multi-layer joins | Lake; avoid unnecessary TiKV row-store overhead |
+| TP-derived analytics at exactly 50 TB | TiFlash direction; threshold is not a product limit |
+| TP-derived analytics at 80 TB | Retain TP and request architecture/sizing review |
+| TP plus separate AP plus shared agent artifacts | Separate database, Lake, and Filesystem roles; verify integrations |
+| Slow reports, TP binding unknown | Analytical direction unconfirmed; record assumptions |
+| Pure AP on GCP with CMEK | Lake-specific verification, not automatic Dedicated |
+| AWS data plane required in your account | BYOC conditional on region, features, onboarding, preview tolerance |
+| Same ownership requirement on GCP | Conflict; current BYOC matrix has no GCP support |
+| Manual resizing, AWS, ownership unspecified | BYOC/Dedicated remain until other constraints and preferences decide |
+| New Relic, AWS, elastic billing, preview accepted | Essential/Premium candidates; not a Dedicated hard lock |
+| BYOC required plus mandatory New Relic | Conflict; BYOC integration marked unavailable |
+| Premium bulk file export or Events | Supported snapshot path (export preview); do not use old exclusions |
+| BYOC plus Prometheus, private preview not approved | Conditional access or conflict; no silent support claim |
+| Persistent files across CI jobs, no SQL | Filesystem only; no database provisioning, binlogs, or sizing |
+| Filesystem with GA-only policy | Preview conflict; no GA promise |
+| PostgreSQL-compatible target requested | Separate Starter preview docs, not the MySQL table |

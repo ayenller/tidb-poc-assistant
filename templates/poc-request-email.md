@@ -19,7 +19,7 @@
 
 ---
 
-**Subject**: TiDB Cloud PoC request — {{your company}}, {{source database}} migration
+**Subject**: TiDB Cloud PoC request — {{your company}}, {{database / analytics / shared-files use case}}
 
 Hi,
 
@@ -29,7 +29,9 @@ can skip the discovery round; the full assessment is attached.
 
 **Our current environment**
 
-- **Source**: {{database and version, e.g. Google Cloud SQL for MySQL 8.0}}
+- **Service scope**: {{database / Lake / Filesystem / mixed; target SQL compatibility if applicable}}
+- **Source**: {{database and version, or not applicable for Filesystem-only}}
+- **Ownership / preview constraints**: {{own-cloud data plane required? public/private preview acceptable?}}
 - **Data volume**: {{raw size}}{{, largest table if known}}
 - **Throughput**: {{peak QPS/TPS}}, roughly {{read:write ratio}}
 - **Latency target**: {{P95/P99 target, or "no formal SLA"}}
@@ -61,11 +63,19 @@ there's little to debate and you can go straight to sizing.}}
 {{If preview or beta features are involved, name them and say what you need to know: how
 stable they are, what the support position is, and whether they suit your timeline.}}
 
-**On the migration**
+**On data migration / file access**
 
 {{Two or three sentences: the approach you expect (bulk load, continuous replication, or
 both), the cutover downtime you're targeting, and anything you've already verified or
 started.}}
+
+{{For Filesystem: describe files that must persist across sessions, environments sharing
+access, scope of permissions, CLI/SDK versus mount needs, layers/checkpoints, and platform/
+region questions. Do not request a database cluster or replication for file-only needs.}}
+
+{{For BYOC: state your cloud account and region requirements, onboarding readiness, and
+permission/preparation questions. Keep Lake and Filesystem billing/access checks separate
+from database-cluster credit assumptions.}}
 
 **Open questions**
 

@@ -1,131 +1,109 @@
-# TiDB Cloud Product Matrix (snapshot)
+# Product support snapshot — 2026-10-30
 
-Source of truth: <https://docs.pingcap.com/tidbcloud/features/>
-Snapshot taken 2026-07-29. **Re-verify before they commit to an architecture** — this page
-changes as features graduate from preview.
+Primary sources:
+- [MySQL-compatible plan comparison](https://docs.pingcap.com/tidbcloud/features/)
+- [Lake overview](https://docs.pingcap.com/tidbcloudlake/lake-overview/)
+- [Filesystem introduction](https://docs.pingcap.com/tidbcloud-filesystem/filesystem-intro/)
+- [Product introduction and lifecycle status](https://docs.pingcap.com/tidbcloud/tidb-cloud-intro/)
 
-Legend: ✅ generally available or public preview · 🔒 private preview (support ticket) ·
-🚧 under development · ❌ not available
+The comparison covers five **MySQL-compatible database plans**. Lake and Filesystem
+are separate services. PostgreSQL-compatible Starter is excluded from this matrix;
+confirm its own documentation when requested. A PostgreSQL source does not by itself
+mean a PostgreSQL-compatible target.
 
-## The five offerings
+## MySQL-compatible plan matrix
 
-| Offering | One-line positioning |
-|---|---|
-| **Starter** | Entry tier for developers and AI/SaaS applications. Pay-as-you-go, auto-scaling, SQL Editor, Data Branch. The **only** tier with vector and full-text search. |
-| **Essential** | Production OLTP with autoscaling and pay-as-you-go. Adds PITR, alerting, DM (preview), backup recycle bin. |
-| **Premium** (public preview) | Enterprise workloads — cross-AZ failover, Kafka changefeeds, manual backup, database audit logging, on top of the elastic model. |
-| **Dedicated** | Mission-critical. Full HTAP with TiFlash, cross-AZ HA, node groups, resource control, VPC peering, CMEK, dual-region backup, GCP/Azure regions. Fixed provisioned resources, no pay-as-you-go. |
-| **TiDB Cloud Lake** (public preview) | Separate product, separate doc site: <https://docs.pingcap.com/tidbcloudlake/>. Cloud-native data warehouse with compute/storage separation and independently provisioned warehouses. ANSI SQL, semi-structured data, Apache Iceberg, and native vector / full-text / geospatial engines over shared object storage. Positioned against Snowflake. |
+Legend follows the source: ✅ means GA **or public preview**, not necessarily GA;
+🔒 requires private-preview approval; 🚧 is under development; ❌ unavailable.
+Explicit public-preview annotations are retained below. Check exact regions and current
+feature status before a commitment. Never silently admit 🔒 or 🚧 as supported.
 
-## Feature matrix
-
-| Category | Feature | Starter | Essential | Premium | Dedicated |
+| Capability | Starter | Essential | Premium | BYOC | Dedicated |
 |---|---|---|---|---|---|
-| **Basics** | Scalable transactional processing | ✅ | ✅ | ✅ | ✅ |
-| | Analytical processing | ✅ | ✅ | ✅ | ✅ |
-| | API | ✅ (preview) | ✅ (preview) | ✅ (preview) | ✅ (preview) |
-| **Developer experience** | Data Branch | ✅ | ✅ | 🚧 | ❌ |
-| | SQL Editor | ✅ | 🚧 | 🚧 | ❌ |
-| **Resource management** | Pay-as-you-go | ✅ | ✅ | ✅ | ❌ |
-| | Auto-scaling | ✅ | ✅ | ✅ | ❌ |
-| | Manual cluster modification | ❌ | ❌ | ❌ | ✅ |
-| | Pause & resume | ❌ | ❌ | ❌ | ✅ |
-| | System maintenance window | ❌ | ❌ | 🚧 | ✅ |
-| | Backup file recycle bin | ❌ | ✅ | ✅ | ✅ |
-| **Specialized** | **Vector storage & search** | **✅ (preview)** | **❌** | **❌** | **❌** |
-| | **Full-text search** | **✅ (preview)** | **❌** | **🚧** | **❌** |
-| **Data processing** | CSV / Parquet / SQL import | ✅ | ✅ | ✅ | ✅ |
-| | **Data migration from MySQL (DM)** | **❌** | **✅ (preview)** | **✅ (preview)** | **✅** |
-| | CSV / Parquet / SQL export | ✅ (preview) | ✅ (preview) | 🔒 | ❌ |
-| | Changefeeds to Kafka | ❌ | 🔒 | ✅ | ✅ |
-| **Backup & restore** | Automatic backup | ✅ | ✅ | ✅ | ✅ |
-| | Manual backup | ❌ | ❌ | ✅ | ✅ |
-| | Dual-region backup | ❌ | ❌ | ❌ | ✅ |
-| | Point-in-time recovery | ❌ | ✅ | ✅ | ✅ |
-| | Restore | ✅ | ✅ | ✅ | ✅ |
-| **Observability** | Built-in metrics | ✅ | ✅ | ✅ | ✅ |
-| | Alerting | ❌ | ✅ | ✅ | ✅ |
-| | SQL statement analysis | ✅ | ✅ | ✅ | ✅ |
-| | Slow query log | ✅ | ✅ | ✅ | ✅ |
-| | Top SQL | ❌ | ✅ (preview) | ✅ (preview) | ✅ |
-| | Events | ✅ | ✅ | 🚧 | ✅ |
-| | Prometheus / Grafana | ❌ | ✅ (preview) | ✅ (preview) | ✅ |
-| | Datadog integration | ❌ | ✅ (preview) | ✅ (preview) | ✅ |
-| | New Relic integration | ❌ | ❌ | ❌ | ✅ |
-| **High availability** | Cross-AZ failover | ❌ | ❌ | ✅ | ✅ |
-| | Node groups | ❌ | ❌ | ❌ | ✅ |
-| | Resource control | ❌ | ❌ | 🚧 | ✅ |
-| **Network** | Private endpoint | ✅ | ✅ | ✅ | ✅ |
-| | Public endpoint | ✅ | ✅ | ✅ | ✅ |
-| | VPC peering | ❌ | ❌ | 🔒 | ✅ |
-| **Security** | Database audit logging | ❌ | 🔒 | ✅ | ✅ |
-| | Console audit logging | ✅ | ✅ | ✅ | ✅ |
-| | Log redaction | ✅ | ✅ | ✅ | ✅ |
-| | CMEK | ❌ | ❌ | 🔒 | ✅ |
-| | Dual-layer encryption | ✅ | ✅ | 🔒 | ✅ |
-| | IAM | ✅ | ✅ | ✅ | ✅ |
-| **Cloud regions** | AWS | ✅ | ✅ | ✅ | ✅ |
-| | Alibaba Cloud | ✅ | ✅ | ✅ | ❌ |
-| | Azure | ❌ | ❌ | 🚧 | ✅ |
-| | Google Cloud | ❌ | ❌ | ❌ | ✅ |
+| Transaction processing | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Analytical processing | ✅ | ✅ | ✅ | ✅ | ✅ |
+| API | ✅ preview | ✅ preview | ✅ preview | 🚧 | ✅ preview |
+| Data Branch | ✅ | ✅ | 🚧 | ❌ | ❌ |
+| SQL Editor | ✅ | 🚧 | 🚧 | ❌ | ❌ |
+| Pay as you use | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Automatic scaling | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Manual modification | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Password setting | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Pause / resume | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Maintenance window | ❌ | ❌ | 🚧 | 🚧 | ✅ |
+| Backup recycle bin | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Vector search | ✅ preview | ❌ | ❌ | ❌ | ❌ |
+| Full-text search | ✅ preview | ❌ | 🚧 | 🚧 | ❌ |
+| CSV / Parquet / SQL import | ✅ | ✅ | ✅ | ✅ | ✅ |
+| MySQL data migration (DM) | ❌ | ✅ preview | ✅ preview | ✅ preview | ✅ |
+| File export to local / object storage | ✅ preview | ✅ preview | ✅ preview | ✅ preview | ❌ |
+| Changefeeds to Kafka / MySQL-compatible targets | ❌ | 🔒 | ✅ | ✅ | ✅ |
+| Automatic backup | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Manual backup | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Dual-region backup | ❌ | ❌ | 🚧 | 🚧 | ✅ |
+| PITR | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Restore | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Built-in metrics | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Alerting | ❌ | ✅ | ✅ | ✅ | ✅ |
+| SQL analysis | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Slow queries | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Top SQL / Top RU | ❌ | ✅ Top RU preview | ✅ Top RU preview | ✅ Top RU preview | ✅ |
+| Events | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Prometheus / Grafana | ❌ | ✅ preview | ✅ preview | 🔒 | ✅ |
+| Datadog | ❌ | ✅ preview | ✅ preview | ❌ | ✅ |
+| New Relic | ❌ | ✅ preview | ✅ preview | ❌ | ✅ |
+| Cross-AZ failover | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Single-AZ deployment | ❌ | ✅ | ❌ | ✅ | ❌ |
+| Node groups | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Resource control | ❌ | ❌ | 🚧 | 🚧 | ✅ |
+| Private endpoint | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Public endpoint | ✅ | ✅ | ✅ | ✅ | ✅ |
+| VPC peering | ❌ | ❌ | 🔒 | 🔒 | ✅ |
+| Database audit | ❌ | 🔒 | ✅ | ✅ | ✅ preview |
+| Console audit | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Log redaction | ✅ | ✅ | ✅ | ✅ | ✅ |
+| CMEK | ❌ | ❌ | 🔒 | 🚧 | ✅ |
+| Dual-layer encryption | ✅ | ✅ | 🔒 | 🚧 | ✅ |
+| IAM / SSO | ✅ | ✅ | ✅ | ✅ | ✅ |
+| AWS | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Alibaba Cloud | ✅ | ✅ | ✅ | 🚧 | ❌ |
+| Azure | ❌ | ❌ | 🚧 | 🚧 | ✅ |
+| Google Cloud | ❌ | ❌ | ❌ | ❌ | ✅ |
 
-## The four rows that decide most cases
+The introduction identifies Essential, Premium, and BYOC as public preview. Starter's
+MySQL offering is GA on AWS and preview on Alibaba; Dedicated is GA on AWS/Azure/GCP.
+Feature-level preview labels still apply within GA plans.
 
-Everything else is detail. These four rows produce nearly every recommendation and every
-conflict:
+## Billing interpretation
 
-1. **Vector search** — Starter only.
-2. **Full-text search** — Starter only (Premium under development).
-3. **Data migration from MySQL (DM)** — everything *except* Starter.
-4. **Cloud provider** — GCP and Azure are Dedicated only.
+The feature row "pay as you use" does not establish the billing unit. The
+[billing page](https://docs.pingcap.com/tidbcloud/tidb-cloud-billing/), verified 2026-10-30,
+says Essential is billed on provisioned RCUs, Premium on consumed RCUs and used storage,
+and BYOC has cloud infrastructure, provisioned-vCPU service, and support charges.
+Do not turn the matrix into a price quote or assume automatic scaling means usage billing.
 
-Rows 1–2 point at Starter; rows 3–4 point away from it. That is the structural conflict the
-decision tree exists to detect. See `decision-tree.md`.
+## BYOC selection boundary
 
-## ⚠️ Known documentation contradiction — vector search
+BYOC puts the data plane in your own AWS account while PingCAP manages the control plane
+and operations. Select it for an explicit customer-cloud infrastructure requirement,
+not merely access to a customer bucket. AWS support does not mean every AWS region.
+[Onboarding](https://docs.pingcap.com/tidbcloud/byoc-onboarding-overview/) requires work
+with the TiDB Cloud team; record cloud preparation and permissions as prerequisites,
+not an ordinary self-service database launch.
 
-Two TiDB docs pages disagree:
+## Lake and Filesystem
 
-| Page | Claim |
-|---|---|
-| <https://docs.pingcap.com/tidbcloud/features/> | Vector storage & search: Starter ✅ (preview), Essential ❌, Premium ❌, Dedicated ❌ |
-| <https://docs.pingcap.com/tidbcloud/vector-search-overview/> | "available on TiDB Self-Managed, TiDB Cloud Starter, TiDB Cloud Essential, and TiDB Cloud Dedicated" (beta; v8.4.0+ required for Self-Managed and Dedicated, v8.5.0+ recommended) |
+Use [lake-and-filesystem.md](lake-and-filesystem.md) for service fit and PoC questions.
+Do not apply the MySQL plan matrix to either service. "Analytical processing ✅" does
+not establish TiFlash support; confirm the required engine for the chosen plan.
 
-**This skill follows the features page** (Starter only) because that page is the canonical
-tier-comparison surface.
+## Conflicting or incomplete documentation
 
-**How to handle it in the conversation**: when vector search is a requirement and their
-other constraints push away from Starter, do not silently resolve the conflict.
-State that the tier availability of vector search must be confirmed with their TiDB contact
-before the PoC design is locked, and present it as an open question in the report. If it
-turns out Essential/Dedicated do support it, the conflict disappears and the recommendation
-simplifies — say so explicitly, because that is a materially better outcome for them.
+The previous snapshot recorded a broader claim at `vector-search-overview/` than the
+comparison table. That overview could not be read during this refresh, so its old claim
+is not verified current evidence. Use the current matrix for initial filtering; if vector
+support changes the architecture, confirm plan/version availability before final selection.
+Record a discrepancy only with its verification date and source; do not call an old conflict
+confirmed today. ✅ without a lifecycle annotation does not resolve GA status.
 
-## TiDB Cloud Lake notes
-
-Selection guidance (2026-10-30): [TiFlash vs Lake: Selection Guide](https://docs.google.com/document/d/1ZDQs9fBaLbnURM2aTshQoowIZPVU72j2Q2scXlzEw-U/edit?tab=t.0).
-TP-derived analytics → TiFlash; independent pure AP → Lake. Above 50 TB, heavy scans/joins,
-and multi-layer modeling reinforce Lake for pure AP; 50 TB is not a TiFlash limit.
-TiFlash requires the TiKV row store, whose extra storage has no TP purpose for pure AP.
-See `decision-tree.md` Phase 0. This selection update does not refresh the 2026-07-29
-feature snapshot. GCP/Azure and infrastructure rows above compare the four transactional
-tiers only; they do not establish Lake availability or justify replacing Lake with Dedicated.
-
-- **Public preview.** Every recommendation involving Lake must carry that caveat: feature
-  availability and service limits may change.
-- Capabilities per <https://docs.pingcap.com/tidbcloudlake/lake-overview/>: "ANSI SQL,
-  semi-structured data processing, vector search, and AI-oriented workflows"; described as
-  vector-native (embeddings, vector indexes, semantic retrieval in SQL), search-native
-  (full-text indexing), and geo-native.
-- Compute and storage are separated; warehouses are provisioned independently.
-- Data gets in via stages / load-from-files, data-integration pipelines, and migration paths
-  (e.g. from Snowflake).
-- The docs do **not** clearly document the integration path between Lake and a transactional
-  TiDB Cloud cluster. If their design depends on that link, flag it as an open
-  question rather than assuming it works.
-
-## What not to state
-
-- No pricing figures and no SLA percentages — tell them to get those from their TiDB contact.
-- Never present a 🚧 or 🔒 item as available.
-- Never present a preview/beta item as a GA commitment.
+No price quotes, SLA percentages, or unsupported feature promises.

@@ -1,5 +1,11 @@
 # Data Import Playbook
 
+Applicability: MySQL-compatible TiDB database targets only. Confirm BYOC onboarding,
+networking, and preview feature access before applying these paths there. Lake needs its
+own verified ingestion mechanism; Filesystem needs a file-access/population plan and has
+no SQL binlog/cutover prerequisite. Do not infer support across product families.
+
+
 **First, check whether masking is required** (intake item 14). If production data must be
 masked before it reaches the PoC cluster, the fork below does not apply — go to
 `data-masking.md` and use **Path 5**. Masking is a full-load-only approach, so it overrides
@@ -276,7 +282,7 @@ Dedicated.
 
 - **Starter does not support DM.** If the plan needs Path 1 or Path 4, Starter is out — say
   so in the import section too, not only in the tier rationale.
-- DM is **preview** on Essential and Premium, **GA** on Dedicated. If they need GA
+- DM is **public preview** on Essential, Premium, and BYOC, **GA** on Dedicated. If they need GA
   for a production cutover, that narrows to Dedicated.
 - CSV/Parquet import is available on **all** tiers, so Path 2 and Path 3 never constrain tier
   selection.

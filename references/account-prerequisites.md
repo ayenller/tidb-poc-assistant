@@ -1,5 +1,15 @@
 # Account & Billing Prerequisites
 
+## Applicability
+
+This reference covers database-cluster prerequisites. Lake and Filesystem require their
+own billing/access verification; database payment, credit expiry, and cluster/backup
+recycling rules must not be copied to them. Filesystem does not require creating a database.
+BYOC additionally requires coordinated onboarding, cloud preparation, and permissions;
+confirm commercial/account prerequisites with the TiDB team rather than assuming ordinary
+self-service provisioning. See `product-matrix.md` for the dated sources.
+
+
 Source: <https://docs.pingcap.com/tidbcloud/tidb-cloud-billing/>
 
 A paid TiDB Cloud cluster **cannot be created without a payment method on the organization**.
@@ -70,17 +80,15 @@ vendor relationship, or adding a card requires an approval cycle they'd rather a
 TiDB Cloud grants credits to PoC users; **one credit equals one US dollar**. Credits are
 consumed **before** any payment method is charged, so a PoC can often run entirely on credits.
 
-That is exactly why the payment method gets forgotten — and why it becomes urgent. Per the
-docs:
+The [billing page](https://docs.pingcap.com/tidbcloud/tidb-cloud-billing/) was rechecked
+2026-10-30. Its warning is specifically about Dedicated: expired credits without a payment
+method prevent new Dedicated clusters; existing Dedicated clusters are recycled after
+3 days and backups after 7. Do not extend that timeline to other products. Verify the
+applicable policy again before quoting a future deadline.
 
-> "If all your credits become expired before you add a payment method, you cannot create a new
-> TiDB Cloud Dedicated cluster. After 3 days, all your existing TiDB Cloud Dedicated clusters
-> will be recycled. After 7 days, all your backups will be recycled."
-
-**Say this plainly.** Credit expiry without a payment method destroys the PoC
-environment — clusters at 3 days, backups at 7. If the PoC produced results worth keeping,
-they are gone. A customer planning to extend a PoC into production must have billing settled
-before credits lapse.
+Credits cannot pay support-plan fees. BYOC requires Enterprise support or higher, with
+cloud-provider infrastructure charges and PingCAP service/support charges to confirm;
+these prerequisites differ from a normal self-service plan. No price estimate is made here.
 
 ---
 
@@ -100,10 +108,11 @@ ahead of the PoC kickoff.
 **Flag as a risk** whenever any of these hold:
 - The PoC contact lacks the billing role → an approval chain exists that nobody has started.
 - Marketplace subscription chosen → procurement lead time is typically longer than card entry.
-- Credits are already running, with no payment method set → the 3-day/7-day recycling clock
-  applies. This is the highest-urgency version of the flag.
+- Credits are already running with no payment method set → verify the product-specific
+  expiry and retention policy, then record the actual deadline.
 
-**Note the interaction with tier selection**: this applies to all paid clusters. Starter has a
+**Note the interaction with plan selection**: billing readiness is broadly relevant,
+but the quoted recycling timeline is Dedicated-specific. MySQL-compatible Starter has a
 free allowance, so a Starter-only PoC may not need billing set up on day one — but say so
 explicitly rather than leaving them to assume it, and point out that moving off
 Starter later will require it.
