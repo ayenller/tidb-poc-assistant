@@ -103,6 +103,14 @@ simplifies — say so explicitly, because that is a materially better outcome fo
 
 ## TiDB Cloud Lake notes
 
+Selection guidance (2026-10-30): [TiFlash vs Lake: Selection Guide](https://docs.google.com/document/d/1ZDQs9fBaLbnURM2aTshQoowIZPVU72j2Q2scXlzEw-U/edit?tab=t.0).
+TP-derived analytics → TiFlash; independent pure AP → Lake. Above 50 TB, heavy scans/joins,
+and multi-layer modeling reinforce Lake for pure AP; 50 TB is not a TiFlash limit.
+TiFlash requires the TiKV row store, whose extra storage has no TP purpose for pure AP.
+See `decision-tree.md` Phase 0. This selection update does not refresh the 2026-07-29
+feature snapshot. GCP/Azure and infrastructure rows above compare the four transactional
+tiers only; they do not establish Lake availability or justify replacing Lake with Dedicated.
+
 - **Public preview.** Every recommendation involving Lake must carry that caveat: feature
   availability and service limits may change.
 - Capabilities per <https://docs.pingcap.com/tidbcloudlake/lake-overview/>: "ANSI SQL,

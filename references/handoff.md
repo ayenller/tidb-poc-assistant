@@ -26,10 +26,14 @@ numbers that contradict the sizing skill — worse than producing none.
 | 4. Read/write ratio | item 3 |
 | 5. Latency SLA (P95/P99) | item 4 |
 | 6. Data growth rate & retention | not collected here — pass as unknown |
-| 7. Analytical / HTAP workload and which tables | item 7 |
+| 7. Analytical / HTAP workload and which tables | item 7, including TP binding, report count, freshness/consistency, and separate AP scope |
 | 8. Cloud provider & region | item 8 |
 | 9. Peak connections / concurrency | not collected here — pass as unknown |
 | 10. TiKV compression ratio | not collected here — its 40% default applies |
+
+For TP-bound analytics above 50 TB, pass the atypical scale and request TiFlash
+architecture review; do not treat 50 TB as a capacity limit. For a separate Lake workload,
+keep its volume and requirements distinct from Dedicated sizing inputs.
 
 **How to hand off**: state that sizing is the next step, list the values above as the input
 block, and name the missing ones. That skill never blocks on missing inputs — it applies

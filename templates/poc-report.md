@@ -24,7 +24,7 @@
 | 4 | Latency SLA | |
 | 5 | Continuous replication required | |
 | 6 | Feature requirements | |
-| 7 | Workload profile | |
+| 7 | Workload profile, TP binding, report/freshness needs, scans/joins/modeling layers | |
 | 8 | Cloud provider & region | |
 | 9 | Network & compliance | |
 | 10 | Tolerable cutover window | |
@@ -41,7 +41,17 @@ Values marked *(assumed)* were not provided — see section 6.
 
 ### Recommendation: **{{Starter / Essential / Premium / Dedicated / TiDB Cloud Lake}}**
 
-<!-- One offering, named. Then the reasoning, quoting their own words back. -->
+<!-- One offering per workload. For separate TP and AP systems, name both roles.
+     If requirements conflict, keep the final choice pending. -->
+
+**Analytical direction**: {{TiFlash / Lake / none / to be confirmed}}
+**TP transaction binding**: {{yes / no / unknown — quote the evidence; mark assumptions}}
+**Volume signal**: {{within 50 TB / above 50 TB / unknown, with sizing basis}}
+**Reasoning**: {{TP-derived analytics → TiFlash; independent pure AP → Lake. Explain
+row-store overhead for pure AP where relevant. Volume and scans/joins support this decision,
+not replace TP binding. For TP-bound >50 TB, flag architecture/sizing review rather than
+moving the transaction system to Lake. For separate systems, state each role and any
+unverified integration. Confirm the selected offering supports the required engine.}}
 
 **Why**
 
@@ -67,7 +77,9 @@ Omit only if there are genuinely none. -->
 
 ### ⚠️ Requirement Conflict
 
-<!-- Include ONLY when the feasible set came out empty. Delete the whole subsection
+<!-- Include for an empty feasible set, disagreeing hard locks, or a confirmed Lake
+     incompatibility. Use alternatives matching the actual conflict; A/B/C below apply
+     to search-versus-production conflicts. Delete the whole subsection
      otherwise. Never resolve the conflict unilaterally — present the routes and let them
      choose; it is their architecture. -->
 
@@ -91,7 +103,11 @@ change the answer}}
 
 ## 3. Data Import Plan
 
-**Path**: {{Path 0–4}} — chosen because {{volume}} and {{replication requirement}}.
+**Path**: {{transactional TiDB: Path 0–5; Lake: verified stage/load/pipeline path or
+to be confirmed}} — chosen because {{target, volume, and replication requirement}}.
+
+<!-- For Lake, do not infer DM or import support from transactional tiers. For separate
+     TP/AP systems, give each target its own ingestion plan and unresolved prerequisites. -->
 
 **Expected downtime at cutover**: {{be explicit — this is the number the business side will
 ask about}}

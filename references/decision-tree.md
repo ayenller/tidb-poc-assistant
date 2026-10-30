@@ -1,8 +1,12 @@
 # Product Selection Decision Tree
 
 Evaluate the gates **in order**. Carry a *feasible set* of offerings, starting with
-`{Starter, Essential, Premium, Dedicated, Lake}`. Hard locks reduce it to one; exclusions
-remove members; preferences rank whatever survives.
+`{Starter, Essential, Premium, Dedicated, Lake}`. Hard locks intersect the eligible candidates; exclusions
+remove members; preferences rank whatever survives. Never reintroduce an excluded offering
+to satisfy a later gate. G1–G6 describe the four transactional tiers in the snapshot matrix,
+not verified Lake capabilities. For a pure-AP Lake candidate, confirm deployment, ingestion,
+search, security, and recovery requirements against Lake documentation or the TiDB contact;
+record unverified requirements as open questions and confirmed incompatibilities as conflicts.
 
 Record, for every gate that fires, which input triggered it — the report must explain why
 each offering was excluded, not just which one won.
@@ -13,11 +17,17 @@ each offering was excluded, not just which one won.
 flowchart TD
     A["A. INTAKE — 14 inputs<br/>never block; apply defaults"] --> B{"B. PRODUCT SELECTION<br/>feasible set = all 5"}
 
-    B --> G0{"G0 · WORKLOAD SHAPE<br/>Primary workload analytical<br/>/ warehouse-shaped?"}
-    G0 -->|no — transactional| X0["exclude Lake<br/>(reversible in arbitration)"]
-    G0 -->|yes| L0["Lake = leading candidate"]
+    B --> G0{"G0 · WORKLOAD SHAPE<br/>Analytics tied to core TP<br/>transactions?"}
+    G0 -->|yes, or pure OLTP| X0["exclude Lake; if TP-derived AP,<br/>require confirmed TiFlash support"]
+    G0 -->|separate TP and AP| SPLIT["Evaluate each workload separately"]
+    SPLIT --> X0
+    SPLIT --> L0
+    G0 -->|no — pure AP| L0["Lake = leading candidate"]
     X0 --> G1
-    L0 --> G1
+    L0 --> LC{"Lake requirements<br/>checked separately"}
+    LC -->|confirmed incompatible| CONF
+    LC -->|unknown| LQ["Record open questions;<br/>recommendation stays conditional"]
+    LQ --> P7
 
     G1{"G1 · HARD LOCK<br/>Region = GCP or Azure?"}
     G1 -->|yes| D1["LOCK: Dedicated"]
@@ -29,11 +39,9 @@ flowchart TD
     D2 --> G3
 
     G3{"G3 · HARD LOCK<br/>Vector search OR full-text search?"}
-    G3 -->|"yes + warehouse workload"| L1["LOCK: Lake (public preview)"]
     G3 -->|yes| S1["LOCK: Starter (preview)"]
     G3 -->|no| G4
     S1 --> G4
-    L1 --> G4
 
     G4{"G4 · EXCLUDE<br/>Continuous replication via DM?"}
     G4 -->|yes| X1["exclude Starter"]
@@ -54,33 +62,63 @@ flowchart TD
     C -->|yes| CONF["⚠️ CONFLICT REPORT<br/>3 escape routes with tradeoffs<br/>— never force a tier"]
     C -->|no| P["PREFERENCES G7–G10<br/>rank the survivors"]
 
-    P --> P7["G7 heavy OLAP / warehouse /<br/>Iceberg / Snowflake → Lake"]
+    LC -->|compatible| P7["G7 independent pure AP / warehouse /<br/>Iceberg / Snowflake → Lake"]
     P --> P8["G8 developer or AI-SaaS,<br/>small data, PAYG → Starter"]
     P --> P9["G9 production OLTP, elastic,<br/>hands-off → Essential<br/>(Premium if cross-AZ / audit)"]
     P --> P10["G10 mission-critical, cross-AZ HA,<br/>full HTAP, compliance → Dedicated"]
 
-    P7 --> R["RECOMMEND one offering<br/>+ why each other was excluded"]
+    P7 --> R["RECOMMEND per workload<br/>+ explain exclusions and unknowns"]
     P8 --> R
     P9 --> R
     P10 --> R
-    CONF --> R
+    CONF --> PENDING["Choice pending; present applicable alternatives"]
 ```
 
 ---
 
-## Phase 0 — Workload shape (positions Lake)
+## Phase 0 — Is the analytical workload tied to TP transactions?
 
-Run this before the hard locks. It decides whether Lake is a candidate at all, so that a
-transactional migration never carries an unexplained warehouse product through to the
-ranking phase.
+Selection guidance: [TiFlash vs Lake: Selection Guide](https://docs.google.com/document/d/1ZDQs9fBaLbnURM2aTshQoowIZPVU72j2Q2scXlzEw-U/edit?tab=t.0),
+last modified 2026-10-23; incorporated 2026-10-30. This supplements the older feature-matrix
+snapshot; it does not refresh feature or preview availability.
 
-| Primary workload | Effect |
+The primary rule is **AP requirements derived from a core TP workload → TiFlash; pure AP
+(data-warehouse-style) → Lake.** TiFlash is a columnar replica engine within a transactional
+TiDB offering, not a separate offering. Ask about the business system and the relationship
+between its transactions and reports before classifying slow queries or large joins.
+
+| Workload relationship | Effect |
 |---|---|
-| Transactional (OLTP), or OLTP + reporting (HTAP) | **Exclude Lake** — reason: "analytical product, workload is transactional". The four TiDB Cloud tiers remain. |
-| Analytical / warehouse-shaped (large-scale scanning and aggregation, Iceberg, BI serving, replacing Snowflake/BigQuery/Redshift) | **Lake becomes the leading candidate.** Keep the transactional tiers only if they also have an OLTP system of record in scope. |
-| Both, as separate systems | Both stay in. Expect to recommend two products and say which serves which workload. |
+| Pure OLTP, no analytical requirement | **Exclude Lake**; select among the four transactional tiers. No TiFlash requirement. |
+| Core TP system with derived analytics (billing, orders, transactions; a few reports or real-time queries needing fresh, consistent data in the same database) | **TiFlash direction; exclude Lake for this workload.** Select a transactional offering with confirmed TiFlash support (the snapshot identifies Dedicated for full HTAP). Do not assume every transactional tier has TiFlash. |
+| Pure AP with no TP transaction binding, including a standalone warehouse | **Lake direction**, even below 50 TB. Do not retain TiDB + TiFlash merely because it can execute analytical SQL. Validate Lake requirements separately from G1–G6. |
+| TP and independent AP as separate systems | Evaluate each workload separately. A transactional tier (with TiFlash if it has TP-derived reports) and Lake may both be appropriate; state their respective roles and the unverified integration path. |
 
-Use intake item 7. If it is unknown, default to transactional and record the assumption —
+When G0 identifies TP-derived analytics that requires TiFlash, intersect the transactional
+candidates with confirmed TiFlash-capable offerings before continuing. With the current
+snapshot, use Dedicated for full HTAP; do not let G8/G9 select an elastic tier without
+confirming TiFlash support. If confirmation is pending, make the recommendation conditional.
+
+### Volume and processing signals
+
+The guide describes the typical TiFlash profile as a core TP system, a small number of
+derived reports, fresh/consistent AP and TP data, and volume within 50 TB. Pure AP with
+**more than 50 TB**, large scans, large-table join aggregations, or warehouse-style
+multi-layer modeling is a strong direct-to-Lake case. These are selection signals,
+**not a TiFlash capacity limit or a rule to move a core TP system to Lake at 50 TB**.
+Exactly 50 TB remains in the guide's "within 50 TB" profile; workload binding still decides.
+
+The guide's cost rationale: TiFlash is paired with a three-replica TiKV row store. At
+100 TB of pure AP, retaining the row data alongside columnar replicas adds row-store
+storage without a TP purpose. Explain that architectural overhead qualitatively; do not
+calculate physical bytes, node counts, compression, or a price from this example.
+
+For TP-bound analytics above 50 TB, retain the TP requirement, flag the atypical scale,
+and request TiFlash architecture/sizing review. If an independent AP subsystem can be
+separated, assess Lake for that subsystem without moving the transaction system to Lake.
+
+Use intake items 2 and 7. If workload binding is unknown, default to transactional, leave
+the binding unconfirmed, and record the assumption —
 most PoC conversations are migrations, and wrongly proposing a warehouse is a worse failure
 than wrongly omitting one.
 
@@ -90,8 +128,10 @@ architecture change, not as a match to the stated workload.
 
 ## Phase 1 — Hard locks
 
-A hard lock reduces the feasible set to a single offering. If two hard locks fire and
-disagree, that is a conflict — jump to *Conflict arbitration*.
+A hard lock intersects the current feasible set with the permitted offering(s); it cannot
+reset that set. If the result is empty or two hard locks disagree, that is a conflict —
+jump to *Conflict arbitration*. Apply these tier gates to transactional candidates only,
+including the transactional side of a split design.
 
 ### G1 — Cloud provider and region
 
@@ -137,11 +177,13 @@ Per `product-matrix.md`, these live on **Starter only**.
 | Requirement | Result |
 |---|---|
 | Vector search, or full-text search | **LOCK Starter** (preview) |
-| …and the workload is warehouse-shaped (heavy aggregation, Iceberg, analytics-first) | **LOCK Lake** (public preview) instead |
+| Independent pure AP identified in G0 | Already on the separate Lake path (public preview); verify its search capabilities there, not through the transactional tier lock |
 
 Distinguish carefully: a transactional app that also does semantic retrieval → Starter.
-An analytics platform whose primary job is large-scale scanning and aggregation, with vector
-or full-text as one of several engines → Lake.
+An independent AP platform with vector or full-text as one of several engines → Lake.
+Large scans or joins within core TP-derived reporting do not by themselves make it pure AP.
+If G0 requires TiFlash and G3 points to Starter, confirm the actual TiFlash/search tier
+support or report a conflict; do not silently replace the TP requirement with Lake.
 
 Always attach the preview caveat, and the documentation-contradiction note from
 `product-matrix.md`, whenever this gate fires.
@@ -186,8 +228,10 @@ Apply to whatever survived. These rank rather than eliminate; if several fire, p
 matching their *primary* workload.
 
 ### G7 → Lake
-Heavy OLAP, data-warehouse workload, Iceberg tables, replacing Snowflake/BigQuery/Redshift,
-elastic analytical compute decoupled from storage, AI-oriented analytical workflows.
+Independent pure AP / data warehouse with no TP transaction binding. Large scans,
+large-table join aggregations, multi-layer data modeling, and volume >50 TB reinforce
+this direction; Iceberg or replacing Snowflake/BigQuery/Redshift are supporting context.
+Do not override G0 merely because a TP-bound report is slow or scans a large table.
 Always label public preview.
 
 ### G8 → Starter
@@ -217,8 +261,10 @@ G1/G2/G4/G5/G6 (→ away from Starter). Concretely: *anything that needs vector 
 search plus anything production-grade.*
 
 **Do not resolve this yourself. Do not pick a tier anyway.** Emit a "⚠️ Requirement conflict"
-section naming the exact requirements that collide, then present all three routes with their
-tradeoffs and let them choose:
+section naming the exact requirements that collide. For the search-versus-production
+conflict, present all three routes below with their tradeoffs. For other conflicts (including
+a confirmed Lake incompatibility), present alternatives that address the actual collision;
+do not force search-specific routes. Let them choose:
 
 ### Route A — Split clusters
 Starter for the vector / full-text workload, Essential or Dedicated for transactional data.
@@ -255,11 +301,30 @@ move available and should be listed as the first action item.
 
 ---
 
+## Worked selection cases
+
+| Input | Expected direction | Reason / follow-up |
+|---|---|---|
+| Core billing system, 20 TB, two fresh reports on the same data | TiFlash on a confirmed supporting tier | Analytics is derived from core TP. |
+| Standalone 10 TB warehouse, no TP in scope | Lake | Pure AP is sufficient; >50 TB is not a minimum. |
+| Pure AP, 100 TB, multi-layer models and large joins | Lake | No TP purpose for the extra TiKV row store. |
+| Core order system, exactly 50 TB, fresh reports | TiFlash direction | Within the typical profile; not a capacity boundary. |
+| Core billing system, 80 TB, same-database consistency required | TiFlash direction plus architecture/sizing review | Volume does not erase TP binding. |
+| Core TP plus a separate 100 TB warehouse | Transactional tier for TP; Lake for AP | Record both roles and confirm integration. |
+| Slow reports only; TP binding and volume unknown | Analytical engine to be confirmed | Record provisional OLTP assumption; prioritize the TP-binding question. |
+| Pure AP on GCP with CMEK required | Lake direction, deployment/security unconfirmed | G1/G2 transactional locks cannot establish Lake support or select Dedicated for pure AP. |
+| TP-derived analytics requiring TiFlash plus full-text search | Confirm tier support or report conflict | G3 cannot reintroduce Starter if it lacks required TiFlash support. |
+
+---
+
 ## Output format for Stage B
 
 Produce, in this order:
 
-1. **Recommendation** — one offering, named.
+1. **Recommendation** — one offering per workload, named; for separate TP and AP systems,
+   name both roles. State TiFlash / Lake / no analytical engine / to be confirmed and the
+   TP-binding evidence. A conflict leaves the final choice pending rather than naming a
+   winner. Record volume signals without treating 50 TB as a product limit.
 2. **Why** — the gates that led there, quoting their own stated requirement for each.
 3. **Why not the others** — one line per excluded offering, naming the gate that removed it.
    Never leave an offering unexplained; "not recommended" without a reason is not acceptable

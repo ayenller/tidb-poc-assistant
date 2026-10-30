@@ -2,7 +2,7 @@
 name: tidb-poc-assistant
 description: Help someone evaluating TiDB Cloud scope their own PoC — work through their requirements, pick the offering that fits, flag features TiDB will not support, plan the data migration, and cover the account/billing prerequisites. Use when the user asks which TiDB Cloud product to choose (Starter vs Essential vs Premium vs Dedicated vs TiDB Cloud Lake), wants help preparing for or requesting a PoC, asks how to load or migrate their data into TiDB Cloud, asks whether TiDB supports something their current database uses (stored procedures, triggers, UDF, full-text search, vector search), asks how to mask or anonymize PII during a migration or PoC, or asks what is required to open a paid TiDB Cloud cluster (payment method, credit card, AWS/Azure/Google Cloud Marketplace subscription, PoC credits). The user is the prospective customer, not a vendor engineer. Outputs an assessment report, a machine-readable profile, and a PoC request email they can send to the TiDB team.
 metadata:
-  version: 0.1.0
+  version: 0.3.0
 ---
 
 # TiDB PoC Assistant
@@ -45,7 +45,7 @@ All output is in English.
 ```
 INTAKE (14 items, never block)
    │
-   ├─ SHAPE ───────── G0 workload analytical or transactional? ─▶ Lake in or out
+   ├─ SHAPE ───────── G0 analytics tied to core TP transactions? ▶ TiFlash vs Lake
    │
    ├─ HARD LOCKS ──── G1 GCP/Azure region ─────────────────▶ Dedicated
    │                  G2 VPC peering / CMEK / node groups ─▶ Dedicated
@@ -55,7 +55,7 @@ INTAKE (14 items, never block)
    │                  G5 Kafka changefeed ─────────────────▶ Premium | Dedicated
    │                  G6 PITR / alerting / Top SQL ────────▶ not Starter
    │
-   └─ PREFERENCES ─── G7 heavy OLAP / warehouse ───────────▶ Lake
+   └─ PREFERENCES ─── G7 pure AP / warehouse ──────────────▶ Lake
                       G8 developer or AI-SaaS app ─────────▶ Starter
                       G9 elastic production OLTP ──────────▶ Essential | Premium
                       G10 mission-critical, full HTAP ─────▶ Dedicated
@@ -93,6 +93,16 @@ starting at all five offerings; apply the workload-shape gate, then hard locks, 
 exclusions, then preferences. Feature availability comes from
 [references/product-matrix.md](references/product-matrix.md).
 
+The G1–G6 tier gates in the overview apply to transactional candidates; check Lake
+requirements separately. For analytical requirements, first ask whether they derive from a core transactional (TP)
+system and need fresh, consistent data in the same database. **TP-derived analytics →
+TiFlash; independent pure AP / data warehouse → Lake.** Query slowness, scans, joins, and
+volume alone do not decide this. Read the Phase 0 guidance for the 50 TB selection signal,
+row-store cost rationale, and separate-workload handling. TiFlash is an analytical engine
+within TiDB, not a sixth offering. Keep Lake capability/deployment checks separate from
+the four transactional tiers; an unmet Lake requirement is an open question or conflict,
+not permission to switch pure AP to TiFlash.
+
 **When the feasible set comes out empty, report a conflict — never improvise a tier.**
 The structural cause is nearly always vector/full-text search (Starter only) colliding with
 a production requirement (which excludes Starter). Present all three escape routes with their
@@ -105,7 +115,13 @@ not defensible.
 
 ## Step 3 — Build the import plan
 
-Follow [references/data-import-playbook.md](references/data-import-playbook.md). **Check
+For Lake, confirm its supported stage/load/pipeline path and source compatibility using
+Lake documentation or your TiDB contact. The DM and transactional-tier import paths below
+do not establish Lake support. Record unverified Lake ingestion as an open question;
+keep the import plans separate when recommending both TP and AP products.
+
+Follow [references/data-import-playbook.md](references/data-import-playbook.md) for the
+transactional TiDB target. **Check
 masking first** (item 14), then fork on source compatibility × volume × incremental need:
 
 | Condition | Path |
@@ -151,7 +167,8 @@ Classify every requirement they state using
 - 🟡 **Yellow** — behavior differs (AUTO_INCREMENT gaps, transaction model, DDL, collations).
   Each becomes a PoC test case they should run.
 - 🟢 **Green** — capabilities that fit. Listen especially for slow reports or aggregation
-  pain, which point at **TiFlash**; people rarely connect the complaint to the capability.
+  pain. Apply G0 before choosing **TiFlash for TP-derived analytics** or **Lake for pure AP**;
+  slow reports alone do not distinguish them.
 
 Report all three colors. Red-only misrepresents TiDB as unusable; green-only sets them up to
 be blindsided later. Their trust in this document depends on it containing bad news.

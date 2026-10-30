@@ -74,10 +74,10 @@ Eleven gates in four phases, carrying a feasible set that starts at all five off
 
 | Phase | Gates | Effect |
 |---|---|---|
-| **Shape** | G0 workload analytical vs transactional | Decides whether Lake is a candidate |
+| **Shape** | G0 analytics tied to core TP transactions? | TP-derived → TiFlash; independent pure AP → Lake; separate systems evaluated by role |
 | **Hard locks** | G1 cloud region · G2 enterprise infra/compliance · G3 vector or full-text search | Reduce the set to one |
 | **Exclusions** | G4 continuous replication (DM) · G5 Kafka changefeed · G6 production observability | Remove members |
-| **Preferences** | G7 warehouse · G8 developer/AI-SaaS · G9 elastic OLTP · G10 mission-critical | Rank survivors |
+| **Preferences** | G7 independent pure AP / warehouse · G8 developer/AI-SaaS · G9 elastic OLTP · G10 mission-critical | Rank survivors |
 
 **The conflict this exists to catch**: vector and full-text search are available on **Starter
 only**, while DM (continuous replication from production) is available on **everything except
@@ -85,6 +85,17 @@ Starter**. If you need both, no single offering works. The skill detects the
 empty feasible set, refuses to improvise a tier, and presents three escape routes — split
 clusters, TiDB Cloud Lake, or externalized search — with cost, complexity, and preview risk
 for each.
+
+Selection follows [TiFlash vs Lake: Selection Guide](https://docs.google.com/document/d/1ZDQs9fBaLbnURM2aTshQoowIZPVU72j2Q2scXlzEw-U/edit?tab=t.0)
+(incorporated 2026-10-30). A core billing system with a few fresh reports points to TiFlash;
+a standalone warehouse points to Lake, even below 50 TB. Pure AP above 50 TB with heavy
+scans/joins or multi-layer modeling is a strong Lake case: TiFlash would also retain a
+TiKV row store with no TP purpose. **50 TB is a selection signal, not a TiFlash capacity
+limit.** TP-bound workloads above it need architecture review. Lake requirements are checked
+separately; the transactional feature matrix cannot force a pure-AP design to Dedicated.
+Worked selection cases are in `references/decision-tree.md`.
+The profile and report preserve the TP-binding evidence, volume signal, and per-workload
+recommendations. This does not refresh the older product-feature snapshot.
 
 ## Key rules encoded in the skill
 
